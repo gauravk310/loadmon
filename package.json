@@ -8,7 +8,9 @@
     "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta\" --names \"BACKEND,UI\" \"npm run dev --prefix backend\" \"npm run dev --prefix ui\"",
     "dev:backend": "npm run dev --prefix backend",
     "dev:ui": "npm run dev --prefix ui",
-    "start": "npm run start --prefix backend"
+    "build:ui": "npm run build --prefix ui",
+    "start": "npm run start --prefix backend",
+    "start:ui": "npm run start --prefix ui"
   },
   "dependencies": {
     "concurrently": "^8.2.2"

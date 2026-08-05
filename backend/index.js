@@ -10,7 +10,9 @@ const PORT = process.env.PORT || 8000;
 
 // ── Middleware ────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:8000'],
+  origin: process.env.CORS_ORIGIN
+    ? (process.env.CORS_ORIGIN === '*' ? true : process.env.CORS_ORIGIN.split(',').map(s => s.trim()))
+    : true,
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -28,8 +30,8 @@ const configPath = path.join(__dirname, 'config.json');
 if (!fs.existsSync(configPath)) {
   fs.writeFileSync(configPath, JSON.stringify({
     appUrl: 'http://localhost:4000',
-    serverUrl: 'http://localhost:5000',
-    hostname: 'localhost:5000',
+    serverUrl: 'https://loadmon-be.onrender.com',
+    hostname: 'loadmon-be.onrender.com',
     targetEndpoint: '/api/auth/signin',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

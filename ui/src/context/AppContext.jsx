@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { API } from '../api.js'
 
 const AppContext = createContext(null)
 
-const API = '/api'
 const STORAGE_KEY = 'loadmon_user_config'
 
 export function AppProvider({ children }) {

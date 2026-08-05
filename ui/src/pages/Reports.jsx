@@ -10,7 +10,7 @@ ChartJS.register(
   BarElement, ArcElement, Title, Tooltip, Legend, Filler
 )
 
-const API = '/api'
+import { API } from '../api.js'
 
 const CHART_BASE = {
   responsive: true, maintainAspectRatio: false,

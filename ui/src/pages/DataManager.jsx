@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const API = '/api'
+import { API } from '../api.js'
 
 export default function DataManager() {
   const [dragging, setDragging]   = useState(false)

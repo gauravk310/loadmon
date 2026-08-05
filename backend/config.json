@@ -1,7 +1,7 @@
 {
   "appUrl": "http://localhost:4000",
-  "serverUrl": "http://localhost:5000",
-  "hostname": "localhost:5000",
+  "serverUrl": "https://loadmon-be.onrender.com",
+  "hostname": "loadmon-be.onrender.com",
   "targetEndpoint": "/api/auth/signin",
   "method": "POST",
   "headers": {

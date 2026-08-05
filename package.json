@@ -1,0 +1,21 @@
+{
+  "name": "grademeai-load-testing",
+  "description": "GradeMeAI Load Testing Suite — Powered by Artillery",
+  "version": "1.0.0",
+  "scripts": {
+    "convert": "node Login/convert.js",
+    "test:testing": "artillery run --dotenv .env Login/login-test.yml -e testing -o Login/results.json",
+    "test:quick": "artillery run --dotenv .env Login/login-test.yml -e quick -o Login/results.json",
+    "test:moderate": "artillery run --dotenv .env Login/login-test.yml -e moderate -o Login/results.json",
+    "test:heavy": "artillery run --dotenv .env Login/login-test.yml -e heavy -o Login/results.json",
+    "test:stress": "artillery run --dotenv .env Login/login-test.yml -e stress -o Login/results.json",
+    "report": "node Login/generate-report.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.0",
+    "cross-env": "^10.1.0"
+  }
+}

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GradeMeAI — Load Test Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f8f9fb;
+      color: #1e293b;
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────── */
+    header { margin-bottom: 2.5rem; }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+    .meta {
+      color: #64748b;
+      font-size: 0.85rem;
+      margin-top: 0.35rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .meta span::before {
+      content: '';
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* ── KPI Cards ──────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .kpi {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      transition: box-shadow 0.2s;
+    }
+    .kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .kpi-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 0.3rem;
+    }
+    .kpi-value {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .kpi-unit { font-size: 0.8rem; font-weight: 400; color: #94a3b8; }
+    .kpi-value.success { color: #16a34a; }
+    .kpi-value.danger { color: #dc2626; }
+    .kpi-value.warning { color: #d97706; }
+
+    /* ── Section ────────────────────────────── */
+    .section { margin-bottom: 2rem; }
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #f1f5f9;
+    }
+
+    /* ── Tables ──────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      font-size: 0.85rem;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.7rem;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfd; }
+    .errors-cell { max-width: 280px; word-break: break-all; }
+
+    /* ── Badges ──────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .badge-success { background: #dcfce7; color: #15803d; }
+    .badge-info { background: #dbeafe; color: #1d4ed8; }
+    .badge-warn { background: #fef3c7; color: #b45309; }
+    .badge-error { background: #fee2e2; color: #dc2626; }
+
+    .rate-pill {
+      display: inline-block;
+      padding: 2px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .rate-good { background: #dcfce7; color: #15803d; }
+    .rate-bad { background: #fee2e2; color: #dc2626; }
+
+    /* ── Charts ──────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .chart-card h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+    }
+    .chart-wrap { position: relative; height: 250px; }
+
+    .full-width { grid-column: 1 / -1; }
+
+    /* ── Response Time Grid ──────────────────── */
+    .rt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+    }
+    .rt-item {
+      text-align: center;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 1rem 0.5rem;
+    }
+    .rt-item .rt-label { font-size: 0.7rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .rt-item .rt-val { font-size: 1.35rem; font-weight: 700; color: #0f172a; margin-top: 0.25rem; }
+    .rt-item .rt-unit { font-size: 0.7rem; color: #94a3b8; }
+
+    /* ── No-errors state ────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+    }
+    .empty-state .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ── Animation ──────────────────────────── */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .kpi, .chart-card, .section table, .empty-state, .rt-grid { animation: fadeIn 0.5s ease-out backwards; }
+    .kpi:nth-child(1) { animation-delay: 0.05s; }
+    .kpi:nth-child(2) { animation-delay: 0.1s; }
+    .kpi:nth-child(3) { animation-delay: 0.15s; }
+    .kpi:nth-child(4) { animation-delay: 0.2s; }
+    .kpi:nth-child(5) { animation-delay: 0.25s; }
+    .kpi:nth-child(6) { animation-delay: 0.3s; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>GradeMeAI - Load Test Report</h1>
+    <div class="meta">
+      <span>5 Aug 2026, 12:12 am</span>
+      <span>Duration: 3m 21s</span>
+      <span>Target: undefined</span>
+    </div>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total Requests</div>
+      <div class="kpi-value">600</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Success Rate</div>
+      <div class="kpi-value success">100.0%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg Response</div>
+      <div class="kpi-value">498 <span class="kpi-unit">ms</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">VUs Created</div>
+      <div class="kpi-value">600</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Completed</div>
+      <div class="kpi-value success">600</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Failed</div>
+      <div class="kpi-value ">0</div>
+    </div>
+  </div>
+
+  <!-- Response Time Breakdown -->
+  <div class="section">
+    <div class="section-title">Response Time Distribution</div>
+    <div class="rt-grid">
+      <div class="rt-item"><div class="rt-label">Min</div><div class="rt-val">278</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">Median</div><div class="rt-val">498</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">Mean</div><div class="rt-val">498</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">P75</div><div class="rt-val">529</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">P90</div><div class="rt-val">561</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">P95</div><div class="rt-val">596</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">P99</div><div class="rt-val">659</div><div class="rt-unit">ms</div></div>
+      <div class="rt-item"><div class="rt-label">Max</div><div class="rt-val">823</div><div class="rt-unit">ms</div></div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Response Times</h3>
+      <div class="chart-wrap"><canvas id="rtChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Request Outcome</h3>
+      <div class="chart-wrap"><canvas id="outcomeChart"></canvas></div>
+    </div>
+    
+    <div class="chart-card full-width">
+      <h3>Response Time Over Time</h3>
+      <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
+    </div>
+    <div class="chart-card full-width">
+      <h3>Throughput Over Time (per 10s window)</h3>
+      <div class="chart-wrap"><canvas id="throughputChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Status Codes -->
+  <div class="section">
+    <div class="section-title">HTTP Status Codes</div>
+    
+    <table>
+      <thead><tr><th>Status Code</th><th>Count</th><th>% of Total</th></tr></thead>
+      <tbody>
+    <tr>
+      <td><span class="badge badge-success">200</span></td>
+      <td>600</td>
+      <td>100.0%</td>
+    </tr></tbody>
+    </table>
+  </div>
+
+  <!-- Errors -->
+  <div class="section">
+    <div class="section-title">Errors</div>
+    <div class="empty-state"><div class="icon">✅</div>No errors recorded — all requests succeeded!</div>
+  </div>
+
+  <!-- Per-Endpoint -->
+  <div class="section">
+    <div class="section-title">Per-Endpoint Breakdown</div>
+    
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Status Codes</th><th>Errors</th><th>Mean RT</th><th>P95 RT</th><th>Success Rate</th></tr></thead>
+      <tbody>
+    <tr>
+      <td><code>/api/auth/signin</code></td>
+      <td><span class="badge badge-success">200</span> ×600</td>
+      <td class="errors-cell">—</td>
+      <td>498 ms</td>
+      <td>596 ms</td>
+      <td><span class="rate-pill rate-good">100.0%</span></td>
+    </tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Detailed Error Logs -->
+  
+
+</div>
+
+<script>
+  Chart.defaults.font.family = 'Inter';
+  Chart.defaults.color = '#64748b';
+
+  // Response Time Bar
+  new Chart(document.getElementById('rtChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Min', 'Mean', 'P95', 'P99', 'Max'],
+      datasets: [{
+        data: [278.0,497.6,596.0,658.6,823.0],
+        backgroundColor: ['#86efac','#93c5fd','#fcd34d','#fca5a5','#f87171'],
+        borderRadius: 6,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + ' ms' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Outcome Doughnut
+  new Chart(document.getElementById('outcomeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Success (2xx)', 'Failed / Errors'],
+      datasets: [{
+        data: [600, 0],
+        backgroundColor: ['#86efac','#fca5a5'],
+        borderColor: ['#fff','#fff'],
+        borderWidth: 3,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } }
+      }
+    }
+  });
+
+  
+  // Response Time Timeline
+  new Chart(document.getElementById('timelineChart'), {
+    type: 'line',
+    data: {
+      labels: ["00:12:50","00:13:00","00:13:10","00:13:20","00:13:30","00:13:40","00:13:50","00:14:00","00:14:10","00:14:20","00:14:30","00:14:40","00:14:50","00:15:00","00:15:10","00:15:20","00:15:30","00:15:40","00:15:50","00:16:00","00:16:10"],
+      datasets: [
+        { label: 'Mean', data: [525,501,496,479,495,497,483,502,513,507,500,487,476,475,506,484,593,473,484,502,496], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.3, pointRadius: 2 },
+        { label: 'P95', data: [550,584,539,539,550,539,539,539,573,550,550,596,550,561,561,550,686,539,550,573,550], borderColor: '#f59e0b', backgroundColor: 'transparent', borderDash: [5,3], tension: 0.3, pointRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle' } } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + ' ms' } },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } }
+      }
+    }
+  });
+
+  // Throughput Timeline
+  new Chart(document.getElementById('throughputChart'), {
+    type: 'bar',
+    data: {
+      labels: ["00:12:50","00:13:00","00:13:10","00:13:20","00:13:30","00:13:40","00:13:50","00:14:00","00:14:10","00:14:20","00:14:30","00:14:40","00:14:50","00:15:00","00:15:10","00:15:20","00:15:30","00:15:40","00:15:50","00:16:00","00:16:10"],
+      datasets: [
+        { label: 'Success', data: [6,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,24], backgroundColor: '#86efac', borderRadius: 4 },
+        { label: 'Failed', data: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], backgroundColor: '#fca5a5', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle' } } },
+      scales: {
+        y: { beginAtZero: true, stacked: true, grid: { color: '#f1f5f9' } },
+        x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 12 } }
+      }
+    }
+  });
+</script>
+</body>
+</html>

@@ -25,6 +25,26 @@ let userIndex = 0;
 let successCount = 0;
 let failCount = 0;
 
+function randomPublicIPv4() {
+  let first;
+
+  do {
+    first = Math.floor(Math.random() * 223) + 1;
+  } while (
+    first === 10 ||
+    first === 127 ||
+    first === 169 ||
+    first === 172 ||
+    first === 192
+  );
+
+  const second = Math.floor(Math.random() * 256);
+  const third = Math.floor(Math.random() * 256);
+  const fourth = Math.floor(Math.random() * 254) + 1;
+
+  return `${first}.${second}.${third}.${fourth}`;
+}
+
 // ── assignUser ────────────────────────────────────────────
 function assignUser(userContext, events, done) {
   if (!userData.length) return done(new Error('No user data loaded'));
@@ -39,12 +59,7 @@ function assignUser(userContext, events, done) {
   });
 
   // Random IP to bypass rate limiting (requires trust proxy on target)
-  userContext.vars.randomIP = [
-    Math.floor(Math.random() * 254) + 1,
-    Math.floor(Math.random() * 255),
-    Math.floor(Math.random() * 255),
-    Math.floor(Math.random() * 254) + 1,
-  ].join('.');
+  userContext.vars.randomIP = randomPublicIPv4();
 
   return done();
 }

@@ -7,7 +7,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    preview: {
+      allowedHosts: true
+    },
     server: {
+      allowedHosts: true,
       port: 5173,
       proxy: {
         // ── SSE stream — must bypass buffering ──────────────

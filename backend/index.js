@@ -29,6 +29,16 @@ dirs.forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 const configPath = path.join(__dirname, 'config.json');
 if (!fs.existsSync(configPath)) {
   fs.writeFileSync(configPath, JSON.stringify({
+    applications: [
+      {
+        id: 'app_default',
+        name: 'Default Application',
+        appUrl: 'http://localhost:4000',
+        serverUrl: 'https://loadmon-be.onrender.com',
+        hostname: 'loadmon-be.onrender.com'
+      }
+    ],
+    selectedAppId: 'app_default',
     appUrl: 'http://localhost:4000',
     serverUrl: 'https://loadmon-be.onrender.com',
     hostname: 'loadmon-be.onrender.com',

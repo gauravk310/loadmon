@@ -14,13 +14,42 @@ export default function Configure() {
   const [saved, setSaved]     = useState(false)
   const [error, setError]     = useState(null)
 
+  // Add Application Modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [newAppName, setNewAppName]         = useState('')
+  const [newAppUrl, setNewAppUrl]           = useState('')
+  const [newServerUrl, setNewServerUrl]     = useState('')
+  const [newHostname, setNewHostname]       = useState('')
+  const [addError, setAddError]             = useState(null)
+
   // Seed form when config loads
   useEffect(() => {
     if (config && !form) {
+      const defaultApps = [
+        {
+          id: 'app_default',
+          name: 'Default Application',
+          appUrl: config.appUrl || 'http://localhost:4000',
+          serverUrl: config.serverUrl || 'https://loadmon-be.onrender.com',
+          hostname: config.hostname || 'loadmon-be.onrender.com'
+        }
+      ]
+      const applications = (config.applications && config.applications.length > 0)
+        ? config.applications
+        : defaultApps
+
+      const selectedAppId = (config.selectedAppId && applications.some(a => a.id === config.selectedAppId))
+        ? config.selectedAppId
+        : applications[0].id
+
+      const activeApp = applications.find(a => a.id === selectedAppId) || applications[0]
+
       setForm({
-        appUrl:          config.appUrl || '',
-        serverUrl:       config.serverUrl || '',
-        hostname:        config.hostname || '',
+        applications,
+        selectedAppId,
+        appUrl:          activeApp.appUrl || '',
+        serverUrl:       activeApp.serverUrl || '',
+        hostname:        activeApp.hostname || '',
         targetEndpoint:  config.targetEndpoint || '/api/auth/signin',
         method:          config.method || 'POST',
         body:            typeof config.body === 'object'
@@ -48,6 +77,105 @@ export default function Configure() {
   }
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+
+  // ── Swal Confirmation Helper ───────────────────────────
+  const confirmDelete = ({ title, text, onConfirm }) => {
+    if (typeof window !== 'undefined' && window.Swal) {
+      window.Swal.fire({
+        title: title || 'Are you sure?',
+        text: text || "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#334155',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        background: '#161b27',
+        color: '#f1f5f9',
+        customClass: {
+          popup: 'swal2-dark-popup'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          onConfirm()
+        }
+      })
+    } else if (window.confirm(`${title}\n${text}`)) {
+      onConfirm()
+    }
+  }
+
+  // ── Application management helpers ─────────────────────
+  const handleSelectApp = (appId) => {
+    const selectedApp = form.applications.find(a => a.id === appId)
+    if (!selectedApp) return
+    setForm(f => ({
+      ...f,
+      selectedAppId: appId,
+      appUrl: selectedApp.appUrl || '',
+      serverUrl: selectedApp.serverUrl || '',
+      hostname: selectedApp.hostname || ''
+    }))
+  }
+
+  const updateUrlField = (key, val) => {
+    setForm(f => {
+      const updatedApps = (f.applications || []).map(a =>
+        a.id === f.selectedAppId ? { ...a, [key]: val } : a
+      )
+      return {
+        ...f,
+        [key]: val,
+        applications: updatedApps
+      }
+    })
+  }
+
+  const handleAddNewApp = (e) => {
+    e.preventDefault()
+    if (!newAppName.trim()) {
+      setAddError('Application Name is required')
+      return
+    }
+
+    const newApp = {
+      id: `app_${Date.now()}`,
+      name: newAppName.trim(),
+      appUrl: newAppUrl.trim(),
+      serverUrl: newServerUrl.trim(),
+      hostname: newHostname.trim()
+    }
+
+    setForm(f => ({
+      ...f,
+      applications: [...(f.applications || []), newApp],
+      selectedAppId: newApp.id,
+      appUrl: newApp.appUrl,
+      serverUrl: newApp.serverUrl,
+      hostname: newApp.hostname
+    }))
+
+    setIsAddModalOpen(false)
+    setNewAppName('')
+    setNewAppUrl('')
+    setNewServerUrl('')
+    setNewHostname('')
+    setAddError(null)
+  }
+
+  const handleDeleteApp = (appId) => {
+    if (form.applications.length <= 1) return
+    const filtered = form.applications.filter(a => a.id !== appId)
+    const nextApp = filtered[0]
+    setForm(f => ({
+      ...f,
+      applications: filtered,
+      selectedAppId: nextApp.id,
+      appUrl: nextApp.appUrl || '',
+      serverUrl: nextApp.serverUrl || '',
+      hostname: nextApp.hostname || ''
+    }))
+  }
 
   // ── Headers helpers ───────────────────────────────────
   const headerKeys   = Object.keys(form.headers)
@@ -131,24 +259,76 @@ export default function Configure() {
 
         {/* ── URLs Section ───────────────────────────── */}
         <div className="card card-p">
-          <h3 className="mb-2" style={{ color: 'var(--text-secondary)' }}>🌐 Environment URLs</h3>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div>
+              <h3 style={{ color: 'var(--text-secondary)' }}>🌐 Environment URLs</h3>
+              <p className="text-sm text-muted">Select an application environment or add new application configurations</p>
+            </div>
+            <button
+              type="button"
+              id="btn-add-app"
+              className="btn btn-ghost btn-sm"
+              style={{ color: 'var(--accent-light)', borderColor: 'var(--border)' }}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              ➕ Add New Application
+            </button>
+          </div>
+
+          <div className="form-group mb-3">
+            <label className="form-label" htmlFor="select-application">Select Application</label>
+            <div className="flex gap-2">
+              <select
+                id="select-application"
+                className="form-select flex-1"
+                value={form.selectedAppId || ''}
+                onChange={e => handleSelectApp(e.target.value)}
+                style={{ fontWeight: 600 }}
+              >
+                {(form.applications || []).map(app => (
+                  <option key={app.id} value={app.id}>
+                    {app.name} {app.serverUrl ? `(${app.serverUrl})` : ''}
+                  </option>
+                ))}
+              </select>
+              {form.applications && form.applications.length > 1 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: 'var(--danger)' }}
+                  title="Delete current application"
+                  onClick={() => {
+                    const curApp = form.applications?.find(a => a.id === form.selectedAppId)
+                    confirmDelete({
+                      title: 'Delete Application?',
+                      text: `Are you sure you want to delete application "${curApp?.name || 'this application'}"?`,
+                      onConfirm: () => handleDeleteApp(form.selectedAppId)
+                    })
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid-3" style={{ gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label" htmlFor="input-app-url">App URL (Origin)</label>
               <input id="input-app-url" className="form-input" value={form.appUrl}
-                onChange={e => set('appUrl', e.target.value)}
+                onChange={e => updateUrlField('appUrl', e.target.value)}
                 placeholder="http://localhost:4000" />
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="input-server-url">Server URL (Target)</label>
               <input id="input-server-url" className="form-input" value={form.serverUrl}
-                onChange={e => set('serverUrl', e.target.value)}
+                onChange={e => updateUrlField('serverUrl', e.target.value)}
                 placeholder="http://localhost:5000" />
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="input-hostname">Hostname</label>
               <input id="input-hostname" className="form-input" value={form.hostname}
-                onChange={e => set('hostname', e.target.value)}
+                onChange={e => updateUrlField('hostname', e.target.value)}
                 placeholder="localhost:5000" />
             </div>
           </div>
@@ -183,7 +363,14 @@ export default function Configure() {
                 onChange={e => setHeader(i, e.target.value, v)} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }} />
               <input className="form-input" placeholder="value" value={v}
                 onChange={e => setHeader(i, k, e.target.value)} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }} />
-              <button className="btn btn-ghost btn-sm" onClick={() => removeHeader(i)}
+              <button className="btn btn-ghost btn-sm" onClick={() => {
+                const headerName = k || `Header #${i + 1}`
+                confirmDelete({
+                  title: 'Remove Header?',
+                  text: `Are you sure you want to remove header "${headerName}"?`,
+                  onConfirm: () => removeHeader(i)
+                })
+              }}
                 style={{ color: 'var(--danger)', minWidth: 32 }}>✕</button>
             </div>
           ))}
@@ -221,9 +408,16 @@ export default function Configure() {
                 onChange={e => set('fieldMapping', { ...form.fieldMapping, [varName]: e.target.value })}
                 style={{ fontSize: '0.82rem' }} />
               <button className="btn btn-ghost btn-sm" onClick={() => {
-                const m = { ...form.fieldMapping }
-                delete m[varName]
-                set('fieldMapping', m)
+                const fieldName = varName || `Field #${i + 1}`
+                confirmDelete({
+                  title: 'Remove Field Mapping?',
+                  text: `Are you sure you want to remove mapping for "${fieldName}"?`,
+                  onConfirm: () => {
+                    const m = { ...form.fieldMapping }
+                    delete m[varName]
+                    set('fieldMapping', m)
+                  }
+                })
               }} style={{ color: 'var(--danger)' }}>✕</button>
             </div>
           ))}
@@ -278,7 +472,7 @@ export default function Configure() {
             <button className="btn btn-ghost btn-sm" onClick={addPhase}>+ Add Phase</button>
           </div>
           <p className="text-sm text-muted mb-2">
-            These phases are used when starting a test from the Dashboard with "Custom" preset.
+            These phases are used when starting a test from the Dashboard with "Default Config" preset.
             Quick/Moderate/Heavy/Stress presets override this.
           </p>
 
@@ -305,13 +499,108 @@ export default function Configure() {
                 <input className="form-input" value={phase.name || ''}
                   onChange={e => setPhase(i, 'name', e.target.value)} placeholder="e.g. Warm Up" />
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => removePhase(i)}
+              <button className="btn btn-ghost btn-sm" onClick={() => {
+                const phaseTitle = phase.name ? `"${phase.name}"` : `Phase #${i + 1}`
+                confirmDelete({
+                  title: 'Remove Phase?',
+                  text: `Are you sure you want to remove ${phaseTitle}?`,
+                  onConfirm: () => removePhase(i)
+                })
+              }}
                 style={{ color: 'var(--danger)', alignSelf: 'flex-end' }}>✕</button>
             </div>
           ))}
         </div>
 
       </div>
+
+      {/* ── Add Application Modal ─────────────────────── */}
+      {isAddModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                🚀 Add New Application
+              </h3>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setIsAddModalOpen(false)}
+                style={{ fontSize: '1.1rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {addError && (
+              <div className="text-sm" style={{ color: 'var(--danger)', background: 'var(--danger-dim)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)' }}>
+                ⚠️ {addError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddNewApp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="new-app-name">Application Name *</label>
+                <input
+                  id="new-app-name"
+                  className="form-input"
+                  value={newAppName}
+                  onChange={e => setNewAppName(e.target.value)}
+                  placeholder="e.g. User Auth Microservice"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="new-app-url">App URL (Origin)</label>
+                <input
+                  id="new-app-url"
+                  className="form-input"
+                  value={newAppUrl}
+                  onChange={e => setNewAppUrl(e.target.value)}
+                  placeholder="http://localhost:4000"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="new-server-url">Server URL (Target)</label>
+                <input
+                  id="new-server-url"
+                  className="form-input"
+                  value={newServerUrl}
+                  onChange={e => setNewServerUrl(e.target.value)}
+                  placeholder="http://localhost:5000"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="new-hostname">Hostname</label>
+                <input
+                  id="new-hostname"
+                  className="form-input"
+                  value={newHostname}
+                  onChange={e => setNewHostname(e.target.value)}
+                  placeholder="localhost:5000"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Application
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

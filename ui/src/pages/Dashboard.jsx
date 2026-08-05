@@ -83,7 +83,7 @@ function splitLogText(text) {
 
 export default function Dashboard() {
   const { testStatus, liveMetrics, logs, startTest, stopTest, config } = useApp()
-  const [selectedPreset, setSelectedPreset] = useState('quick')
+  const [selectedPreset, setSelectedPreset] = useState('default')
   const [starting, setStopping] = useState(false)
   const [error, setError]       = useState(null)
   const logRef = useRef(null)
@@ -182,12 +182,21 @@ export default function Dashboard() {
     return entries.slice(-300)
   }, [logs])
 
+  // ── Active Phases ──────────────────────────────────────────
+  const activePhases = useMemo(() => {
+    if (selectedPreset === 'default') {
+      return config?.phases && config.phases.length > 0
+        ? config.phases
+        : [{ duration: 30, arrivalRate: 5, name: 'Default Test' }]
+    }
+    return PRESET_PHASES[selectedPreset] || [{ duration: 30, arrivalRate: 5, name: 'Default Test' }]
+  }, [selectedPreset, config?.phases])
+
   // ── Handlers ──────────────────────────────────────────────
   const handleStart = async () => {
     setError(null)
     setStopping(true)
-    const phases = PRESET_PHASES[selectedPreset]
-    const result = await startTest({ environment: 'custom', phases })
+    const result = await startTest({ environment: 'custom', phases: activePhases })
     setStopping(false)
     if (!result.success) setError(result.error)
   }
@@ -216,6 +225,7 @@ export default function Dashboard() {
               className="form-select"
               style={{ width: 'auto' }}
             >
+              <option value="default">⚙️ Default Config</option>
               <option value="quick">⚡ Quick (30s)</option>
               <option value="moderate">🚀 Moderate (2m)</option>
               <option value="heavy">🔥 Heavy (~2k VUs)</option>
@@ -301,9 +311,11 @@ export default function Dashboard() {
       {/* Phase Timeline */}
       {selectedPreset && !testStatus.running && (
         <div className="card card-p mb-3">
-          <div className="section-title mb-2">Selected Phase Plan — {selectedPreset}</div>
+          <div className="section-title mb-2">
+            Selected Phase Plan — {selectedPreset === 'default' ? 'Default Config' : selectedPreset}
+          </div>
           <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
-            {PRESET_PHASES[selectedPreset].map((p, i) => (
+            {activePhases.map((p, i) => (
               <PhaseChip key={i} phase={p} index={i} />
             ))}
           </div>

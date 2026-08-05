@@ -1,0 +1,12 @@
+{
+  "watch": ["*.js", "routes/"],
+  "ext": "js,json",
+  "ignore": [
+    "../.env",
+    "config.json",
+    "artillery/",
+    "uploads/",
+    "node_modules/"
+  ],
+  "delay": "500"
+}

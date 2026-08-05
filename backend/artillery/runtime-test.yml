@@ -1,0 +1,31 @@
+config:
+  target: "http://localhost:5000"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      Origin: "http://localhost:4000"
+  processor: "./processor.js"
+  http:
+    timeout: 30
+    maxSockets: 5000
+  environments:
+    custom:
+      phases:
+        - duration: 30
+          arrivalRate: 5
+          name: "Quick Validation"
+
+scenarios:
+  - name: "Load Test"
+    flow:
+      - function: "assignUser"
+      - post:
+          url: "/api/auth/signin"
+          headers:
+            X-Forwarded-For: "{{ randomIP }}"
+            Content-Type: "application/json"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          afterResponse: "logResponse"
+      - think: 1

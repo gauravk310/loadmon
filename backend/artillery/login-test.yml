@@ -1,0 +1,71 @@
+# ═══════════════════════════════════════════════════════════════
+#  LoadMon — API Load Test
+#  Powered by Artillery (https://artillery.io)
+# ═══════════════════════════════════════════════════════════════
+#
+#  This file is GENERATED at runtime by the backend.
+#  Edit configuration from the LoadMon UI instead.
+#
+# ═══════════════════════════════════════════════════════════════
+
+config:
+  target: "{{ $processEnvironment.SERVER_URL }}"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      Origin: "{{ $processEnvironment.APP_URL }}"
+  processor: "./processor.js"
+  http:
+    timeout: 30
+    maxSockets: 5000
+  environments:
+    quick:
+      phases:
+        - duration: 30
+          arrivalRate: 5
+          name: "Quick Validation"
+    moderate:
+      phases:
+        - duration: 120
+          arrivalRate: 10
+          name: "Moderate Load"
+    heavy:
+      phases:
+        - duration: 30
+          arrivalRate: 50
+          rampTo: 300
+          name: "Ramp Up"
+        - duration: 60
+          arrivalRate: 300
+          name: "Peak Load"
+        - duration: 15
+          arrivalRate: 300
+          rampTo: 10
+          name: "Cool Down"
+    stress:
+      phases:
+        - duration: 30
+          arrivalRate: 100
+          rampTo: 1000
+          name: "Aggressive Ramp"
+        - duration: 60
+          arrivalRate: 1000
+          name: "Stress Test"
+        - duration: 15
+          arrivalRate: 1000
+          rampTo: 10
+          name: "Cool Down"
+
+scenarios:
+  - name: "API Load Test"
+    flow:
+      - function: "assignUser"
+      - post:
+          url: "/api/auth/signin"
+          headers:
+            X-Forwarded-For: "{{ randomIP }}"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          afterResponse: "logResponse"
+      - think: 1

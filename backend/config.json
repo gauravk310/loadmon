@@ -1,0 +1,20 @@
+{
+  "appUrl": "http://localhost:4000",
+  "serverUrl": "http://localhost:5000",
+  "hostname": "localhost:5000",
+  "targetEndpoint": "/api/auth/signin",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "email": "{{ email }}",
+    "password": "{{ password }}"
+  },
+  "httpTimeout": 30,
+  "maxSockets": 5000,
+  "fieldMapping": {
+    "email": "email",
+    "password": "password"
+  }
+}

@@ -1,21 +1,16 @@
 {
-  "name": "grademeai-load-testing",
-  "description": "GradeMeAI Load Testing Suite — Powered by Artillery",
+  "name": "loadmon",
   "version": "1.0.0",
+  "description": "LoadMon — End-to-End API Load Testing Platform",
+  "private": true,
   "scripts": {
-    "convert": "node Login/convert.js",
-    "test:testing": "artillery run --dotenv .env Login/login-test.yml -e testing -o Login/results.json",
-    "test:quick": "artillery run --dotenv .env Login/login-test.yml -e quick -o Login/results.json",
-    "test:moderate": "artillery run --dotenv .env Login/login-test.yml -e moderate -o Login/results.json",
-    "test:heavy": "artillery run --dotenv .env Login/login-test.yml -e heavy -o Login/results.json",
-    "test:stress": "artillery run --dotenv .env Login/login-test.yml -e stress -o Login/results.json",
-    "report": "node Login/generate-report.js"
+    "install:all": "npm install --prefix backend && npm install --prefix ui",
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,magenta\" --names \"BACKEND,UI\" \"npm run dev --prefix backend\" \"npm run dev --prefix ui\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:ui": "npm run dev --prefix ui",
+    "start": "npm run start --prefix backend"
   },
   "dependencies": {
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "artillery": "^2.0.0",
-    "cross-env": "^10.1.0"
+    "concurrently": "^8.2.2"
   }
 }

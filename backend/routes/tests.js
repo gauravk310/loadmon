@@ -183,8 +183,16 @@ router.post('/start', (req, res) => {
     return res.status(409).json({ success: false, error: 'A test is already running' });
   }
 
-  const { environment = 'custom', phases } = req.body;
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const { environment = 'custom', phases, config: clientConfig } = req.body;
+
+  let config = clientConfig;
+  if (!config || typeof config !== 'object') {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch {
+      return res.status(400).json({ success: false, error: 'No configuration provided' });
+    }
+  }
 
   const userDataPath = path.join(uploadsDir, 'userData.json');
   if (!fs.existsSync(userDataPath)) {

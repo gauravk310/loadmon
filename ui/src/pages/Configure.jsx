@@ -28,6 +28,7 @@ export default function Configure() {
                            : config.body || '',
         httpTimeout:     config.httpTimeout || 30,
         maxSockets:      config.maxSockets || 5000,
+        randomIp:        config.randomIp ?? false,
         headers:         config.headers || { 'Content-Type': 'application/json' },
         phases:          config.phases || defaultPhases(),
         fieldMapping:    config.fieldMapping || { email: 'email', password: 'password' },
@@ -74,6 +75,18 @@ export default function Configure() {
 
   const addPhase = () => set('phases', [...form.phases, { duration: 30, arrivalRate: 5, name: '' }])
   const removePhase = (i) => set('phases', form.phases.filter((_, idx) => idx !== i))
+
+  // ── Auto-save Random IP toggle ─────────────────────────
+  const handleToggleRandomIp = async (checked) => {
+    set('randomIp', checked)
+    try {
+      let bodyParsed = form.body
+      try { bodyParsed = JSON.parse(form.body) } catch {}
+      await saveConfig({ ...form, randomIp: checked, body: bodyParsed })
+    } catch (e) {
+      console.error('Failed to save randomIp setting:', e)
+    }
+  }
 
   // ── Save ──────────────────────────────────────────────
   const handleSave = async () => {
@@ -221,8 +234,8 @@ export default function Configure() {
 
         {/* ── HTTP Settings ──────────────────────────── */}
         <div className="card card-p">
-          <h3 className="mb-2" style={{ color: 'var(--text-secondary)' }}>⚡ HTTP Engine</h3>
-          <div className="grid-2">
+          <h3 className="mb-2" style={{ color: 'var(--text-secondary)' }}>⚡ HTTP Engine &amp; Networking</h3>
+          <div className="grid-2 mb-3">
             <div className="form-group">
               <label className="form-label" htmlFor="input-timeout">Request Timeout (seconds)</label>
               <input id="input-timeout" type="number" className="form-input" value={form.httpTimeout}
@@ -234,6 +247,28 @@ export default function Configure() {
                 onChange={e => set('maxSockets', Number(e.target.value))} min={100} max={50000} step={100} />
             </div>
           </div>
+
+          <label className="form-switch-row" htmlFor="input-random-ip">
+            <div>
+              <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem' }}>
+                🎲 Random IP Address (<code className="mono" style={{ color: 'var(--accent-light)', fontSize: '0.8rem' }}>X-Forwarded-For</code>)
+              </div>
+              <div className="text-sm text-muted mt-1">
+                {form.randomIp
+                  ? 'ON — Generates a random IP address header per request to simulate distributed clients & bypass rate limiters.'
+                  : 'OFF (Default) — Uses regular IP address without synthetic X-Forwarded-For headers.'}
+              </div>
+            </div>
+            <div className="switch">
+              <input
+                id="input-random-ip"
+                type="checkbox"
+                checked={!!form.randomIp}
+                onChange={e => handleToggleRandomIp(e.target.checked)}
+              />
+              <span className="slider" />
+            </div>
+          </label>
         </div>
 
         {/* ── Custom Phases ──────────────────────────── */}

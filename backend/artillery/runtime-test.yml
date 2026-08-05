@@ -11,9 +11,9 @@ config:
   environments:
     custom:
       phases:
-        - duration: 30
-          arrivalRate: 5
-          name: "Quick Validation"
+        - duration: 120
+          arrivalRate: 10
+          name: "Moderate Load"
 
 scenarios:
   - name: "Load Test"

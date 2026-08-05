@@ -36,6 +36,7 @@ if (!fs.existsSync(configPath)) {
     body: { email: '{{ email }}', password: '{{ password }}' },
     httpTimeout: 30,
     maxSockets: 5000,
+    randomIp: false,
     fieldMapping: { email: 'email', password: 'password' }
   }, null, 2));
 }

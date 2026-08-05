@@ -13,8 +13,16 @@
   },
   "httpTimeout": 30,
   "maxSockets": 5000,
+  "randomIp": true,
   "fieldMapping": {
     "email": "email",
     "password": "password"
-  }
+  },
+  "phases": [
+    {
+      "duration": 30,
+      "arrivalRate": 5,
+      "name": "Quick Test"
+    }
+  ]
 }

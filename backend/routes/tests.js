@@ -5,11 +5,10 @@ const router = express.Router();
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 const configPath = path.join(__dirname, '..', 'config.json');
 
-// Find artillery binary — try local backend, then the shared GradeMeAI node_modules
+// Find artillery binary
 function findArtilleryBin() {
   const candidates = [
     path.join(__dirname, '..', 'node_modules', '.bin', 'artillery'),
@@ -19,15 +18,16 @@ function findArtilleryBin() {
   for (const p of candidates) {
     if (fs.existsSync(p) || fs.existsSync(p + '.cmd')) return p;
   }
-  return 'artillery'; // fallback to PATH
+  return 'artillery';
 }
+
 const artilleryDir = path.join(__dirname, '..', 'artillery');
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const uploadsDir  = path.join(__dirname, '..', 'uploads');
 
 // ── Shared state ──────────────────────────────────────────
 let currentProcess = null;
-let testStatus = { running: false, pid: null, startedAt: null, environment: null };
-let sseClients = [];
+let testStatus  = { running: false, pid: null, startedAt: null, environment: null };
+let sseClients  = [];
 let metricsBuffer = [];
 
 function broadcast(event, data) {
@@ -38,18 +38,99 @@ function broadcast(event, data) {
   });
 }
 
+// ── Artillery stdout metrics parser ───────────────────────
+// Artillery prints a human-readable "Metrics for period to: …" block every ~10s.
+// This parser accumulates those blocks and emits a structured metrics object.
+class MetricsParser {
+  constructor() {
+    this.buf          = '';
+    this.pending      = null;   // metrics object being built
+    this.currentHisto = null;   // current histogram key (e.g. 'http.response_time')
+  }
+
+  feed(chunk, onMetric) {
+    this.buf += chunk;
+    const lines = this.buf.split('\n');
+    this.buf = lines.pop(); // keep incomplete last line
+    for (const raw of lines) this._parseLine(raw, onMetric);
+  }
+
+  flush(onMetric) {
+    // Emit anything still pending when the process closes
+    this._emitPending(onMetric);
+  }
+
+  _emitPending(onMetric) {
+    if (!this.pending) return;
+    const m = this.pending;
+    if (Object.keys(m.counters).length > 0 || Object.keys(m.summaries).length > 0) {
+      onMetric(m);
+    }
+    this.pending = null;
+  }
+
+  _parseLine(raw, onMetric) {
+    const line    = raw.replace(/\r/g, '');
+    const trimmed = line.trim();
+
+    // ── New period boundary ─────────────────────────────────
+    if (trimmed.includes('Metrics for period to:')) {
+      this._emitPending(onMetric);
+      this.pending      = { counters: {}, summaries: {}, _ts: Date.now() };
+      this.currentHisto = null;
+      return;
+    }
+
+    if (!this.pending) return;
+
+    // Skip separators and blank lines (but reset histogram context on blank)
+    if (!trimmed || /^-{3,}/.test(trimmed)) {
+      if (!trimmed) this.currentHisto = null;
+      return;
+    }
+
+    // ── Indented histogram sub-value ────────────────────────
+    // e.g. "  p95: ............. 1224.4"  or  "  p95:      1224.4"
+    if (/^\s{2}/.test(line) && this.currentHisto) {
+      const m = trimmed.match(/^([\w\d]+):\s*[. ]*\s*([\d.]+)\s*$/);
+      if (m) {
+        if (!this.pending.summaries[this.currentHisto]) {
+          this.pending.summaries[this.currentHisto] = {};
+        }
+        this.pending.summaries[this.currentHisto][m[1]] = parseFloat(m[2]);
+      }
+      return;
+    }
+
+    // ── Top-level metric with inline value ──────────────────
+    // e.g. "http.codes.200: ................ 25"
+    const withVal = trimmed.match(/^([\w./\-:@]+):\s*[. ]+\s*([\d.]+)\s*$/);
+    if (withVal) {
+      this.pending.counters[withVal[1]] = parseFloat(withVal[2]);
+      this.currentHisto = null;
+      return;
+    }
+
+    // ── Histogram header (no inline value) ─────────────────
+    // e.g. "http.response_time:"
+    const histoHeader = trimmed.match(/^([\w./\-:@]+):\s*$/);
+    if (histoHeader) {
+      this.currentHisto = histoHeader[1];
+      if (!this.pending.summaries[this.currentHisto]) {
+        this.pending.summaries[this.currentHisto] = {};
+      }
+    }
+  }
+}
+
 // ── Build dynamic YAML from config + phases ───────────────
 function buildYaml(config, phases, environment) {
-  const fieldMapping = config.fieldMapping || { email: 'email', password: 'password' };
-
-  // Build JSON body with template vars
   let bodyFields = '';
   const bodyObj = config.body || {};
   Object.entries(bodyObj).forEach(([k, v]) => {
     bodyFields += `\n            ${k}: "${v}"`;
   });
 
-  // Build phases YAML
   let phasesYaml = '';
   if (phases && phases.length > 0) {
     phases.forEach(p => {
@@ -58,18 +139,16 @@ function buildYaml(config, phases, environment) {
       if (p.name)   phasesYaml += `\n          name: "${p.name}"`;
     });
   } else {
-    // Default quick phase
     phasesYaml = `\n        - duration: 30\n          arrivalRate: 5\n          name: "Quick Test"`;
   }
-
   const headers = config.headers || {};
   let headersYaml = '';
   Object.entries(headers).forEach(([k, v]) => {
-    // 12 spaces — same indent level as X-Forwarded-For inside headers:
     headersYaml += `\n            ${k}: "${v}"`;
   });
 
-  const method = (config.method || 'POST').toLowerCase();
+  const randomIpHeader = config.randomIp === true ? `\n            X-Forwarded-For: "{{ randomIP }}"` : '';
+  const method   = (config.method || 'POST').toLowerCase();
   const endpoint = config.targetEndpoint || '/api';
 
   return `config:
@@ -92,8 +171,7 @@ scenarios:
       - function: "assignUser"
       - ${method}:
           url: "${endpoint}"
-          headers:
-            X-Forwarded-For: "{{ randomIP }}"${headersYaml}
+          headers:${randomIpHeader}${headersYaml}
 ${method !== 'get' && bodyFields ? `          json:${bodyFields}\n` : ''}          afterResponse: "logResponse"
       - think: 1
 `;
@@ -108,7 +186,6 @@ router.post('/start', (req, res) => {
   const { environment = 'custom', phases } = req.body;
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-  // Check userData exists
   const userDataPath = path.join(uploadsDir, 'userData.json');
   if (!fs.existsSync(userDataPath)) {
     return res.status(400).json({ success: false, error: 'No userData.json found. Please upload data first.' });
@@ -116,11 +193,11 @@ router.post('/start', (req, res) => {
 
   // Write dynamic YAML
   const yamlContent = buildYaml(config, phases, environment);
-  const yamlPath = path.join(artilleryDir, 'runtime-test.yml');
+  const yamlPath    = path.join(artilleryDir, 'runtime-test.yml');
   fs.writeFileSync(yamlPath, yamlContent);
 
-  // Clear previous results & logs
-  const resultsPath = path.join(artilleryDir, 'results.json');
+  // Clear previous results
+  const resultsPath  = path.join(artilleryDir, 'results.json');
   const errorLogPath = path.join(artilleryDir, 'error-logs.json');
   if (fs.existsSync(resultsPath)) fs.unlinkSync(resultsPath);
   fs.writeFileSync(errorLogPath, '');
@@ -136,40 +213,39 @@ router.post('/start', (req, res) => {
 
   const env = {
     ...process.env,
-    APP_URL: config.appUrl,
-    SERVER_URL: config.serverUrl,
-    HOSTNAME: config.hostname,
+    APP_URL:       config.appUrl,
+    SERVER_URL:    config.serverUrl,
+    HOSTNAME:      config.hostname,
     USERDATA_PATH: userDataPath,
   };
 
-  currentProcess = spawn(artilleryCmd, args, { cwd: artilleryDir, env, shell: process.platform === 'win32' });
+  currentProcess = spawn(artilleryCmd, args, {
+    cwd:   artilleryDir,
+    env,
+    shell: process.platform === 'win32',
+  });
 
   testStatus = {
-    running: true,
-    pid: currentProcess.pid,
-    startedAt: new Date().toISOString(),
-    environment
+    running:     true,
+    pid:         currentProcess.pid,
+    startedAt:   new Date().toISOString(),
+    environment,
   };
 
   broadcast('status', { ...testStatus, type: 'started' });
 
-  // Stream stdout
+  // ── Parse stdout for live metrics ──────────────────────────
+  const parser = new MetricsParser();
+
+  const onMetric = (metric) => {
+    metricsBuffer.push(metric);
+    broadcast('metrics', metric);
+  };
+
   currentProcess.stdout.on('data', (data) => {
     const text = data.toString();
     broadcast('log', { text, time: new Date().toISOString() });
-
-    // Parse intermediate JSON metrics from Artillery's stdout
-    text.split('\n').forEach(line => {
-      if (line.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(line);
-          if (parsed.counters || parsed.summaries) {
-            metricsBuffer.push({ ...parsed, _ts: Date.now() });
-            broadcast('metrics', parsed);
-          }
-        } catch { /* not JSON */ }
-      }
-    });
+    parser.feed(text, onMetric);
   });
 
   currentProcess.stderr.on('data', (data) => {
@@ -177,14 +253,25 @@ router.post('/start', (req, res) => {
   });
 
   currentProcess.on('close', (code) => {
+    // Flush any in-progress period block
+    parser.flush(onMetric);
+
     testStatus = { running: false, pid: null, startedAt: null, environment: null };
     broadcast('status', { running: false, exitCode: code, type: 'finished', time: new Date().toISOString() });
-    
-    // Parse results and broadcast summary
+
+    // Emit final aggregate summary from results file
     if (fs.existsSync(resultsPath)) {
       try {
         const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
         broadcast('summary', results.aggregate || {});
+        // Also emit any intermediate periods we may have missed (belt & suspenders)
+        const intermediates = results.intermediate || [];
+        intermediates.forEach((m, i) => {
+          if (i >= metricsBuffer.length) {
+            metricsBuffer.push({ ...m, _ts: Date.now() });
+            broadcast('metrics', m);
+          }
+        });
       } catch { /* ignore */ }
     }
     currentProcess = null;
@@ -218,13 +305,18 @@ router.get('/stream', (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
-  // Send current status immediately on connect
+  // Send current status immediately
   res.write(`event: status\ndata: ${JSON.stringify(testStatus)}\n\n`);
+
+  // Replay buffered metrics to new clients (e.g. page refresh mid-test)
+  metricsBuffer.forEach(m => {
+    try { res.write(`event: metrics\ndata: ${JSON.stringify(m)}\n\n`); } catch {}
+  });
 
   const client = { id: Date.now(), res };
   sseClients.push(client);
 
-  // Heartbeat
+  // Heartbeat to keep connection alive through proxies
   const heartbeat = setInterval(() => {
     try { res.write(`:heartbeat\n\n`); } catch { clearInterval(heartbeat); }
   }, 15000);

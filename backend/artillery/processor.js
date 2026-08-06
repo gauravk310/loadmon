@@ -60,6 +60,16 @@ function assignUser(userContext, events, done) {
     userContext.vars[key] = val;
   });
 
+  // Provide alias mappings for common user ID fields if provided in CSV/JSON
+  const idVal = user.id || user._id || user.studentId || user.userId || user.user_id || user['user.id'];
+  if (idVal !== undefined) {
+    userContext.vars['id'] = userContext.vars['id'] || idVal;
+    userContext.vars['user.id'] = userContext.vars['user.id'] || idVal;
+    userContext.vars['user_id'] = userContext.vars['user_id'] || idVal;
+    userContext.vars['studentId'] = userContext.vars['studentId'] || idVal;
+    userContext.vars['userId'] = userContext.vars['userId'] || idVal;
+  }
+
   // Random IP to bypass rate limiting (requires trust proxy on target)
   userContext.vars.randomIP = randomPublicIPv4();
   if (!userContext.vars._vuId) {
@@ -75,6 +85,87 @@ function beforeStep(requestParams, context, ee, next) {
   if (requestParams.name) {
     requestParams._stepName = requestParams.name;
   }
+
+  const resolveValue = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.replace(/\{\{\s*([\w.\[\]]+)\s*\}\}/g, (match, key) => {
+      // 1. Direct match
+      if (context.vars && context.vars[key] !== undefined && context.vars[key] !== '') {
+        return context.vars[key];
+      }
+      // 2. Underscore alias (user.id -> user_id)
+      const underscoreKey = key.replace(/\./g, '_');
+      if (context.vars && context.vars[underscoreKey] !== undefined && context.vars[underscoreKey] !== '') {
+        return context.vars[underscoreKey];
+      }
+      // 3. Dot alias (user_id -> user.id)
+      const dotKey = key.replace(/_/g, '.');
+      if (context.vars && context.vars[dotKey] !== undefined && context.vars[dotKey] !== '') {
+        return context.vars[dotKey];
+      }
+      // 4. User ID fallbacks
+      if (/^(user\.id|user_id|userId|studentId|id|student\.id)$/i.test(key)) {
+        const idVal = context.vars?.['user.id'] || context.vars?.['user_id'] || context.vars?.['id'] || context.vars?.['_id'] || context.vars?.['userId'] || context.vars?.['studentId'];
+        if (idVal !== undefined && idVal !== '') return idVal;
+      }
+      // 5. Token fallbacks
+      if (/^(token|access_token|jwt|authorization)$/i.test(key)) {
+        const tokenVal = context.vars?.['access_token'] || context.vars?.['token'] || context.vars?.['jwt'] || context.vars?.['authorization'];
+        if (tokenVal !== undefined && tokenVal !== '') return tokenVal;
+      }
+
+      // 6. Nested object resolution
+      const parts = key.split('.');
+      let val = context.vars;
+      for (const p of parts) {
+        if (val && typeof val === 'object') val = val[p];
+        else { val = undefined; break; }
+      }
+      if (val !== undefined && val !== '') return val;
+
+      return match;
+    });
+  };
+
+  // Resolve URL placeholders (e.g. {{user.id}})
+  if (requestParams.url) {
+    requestParams.url = resolveValue(requestParams.url);
+  }
+
+  // Resolve headers placeholders & auto-inject auth headers
+  requestParams.headers = requestParams.headers || {};
+  for (const [hk, hv] of Object.entries(requestParams.headers)) {
+    if (typeof hv === 'string') {
+      requestParams.headers[hk] = resolveValue(hv);
+    }
+  }
+
+  // Auto-propagate Cookie header if missing and authCookie is available
+  const hasCookieHeader = Object.keys(requestParams.headers).some(h => h.toLowerCase() === 'cookie');
+  if (!hasCookieHeader && context.vars?.authCookie) {
+    requestParams.headers['Cookie'] = context.vars.authCookie;
+  }
+
+  // Auto-propagate Authorization header if missing and token is available
+  const hasAuthHeader = Object.keys(requestParams.headers).some(h => h.toLowerCase() === 'authorization');
+  if (!hasAuthHeader) {
+    const tokenVal = context.vars?.authorization || context.vars?.access_token || context.vars?.token || context.vars?.jwt;
+    if (tokenVal) {
+      requestParams.headers['Authorization'] = tokenVal.startsWith('Bearer ') ? tokenVal : `Bearer ${tokenVal}`;
+    }
+  }
+
+  // Resolve JSON body placeholders
+  if (requestParams.json && typeof requestParams.json === 'object') {
+    const jsonStr = JSON.stringify(requestParams.json);
+    const resolvedStr = resolveValue(jsonStr);
+    try {
+      requestParams.json = JSON.parse(resolvedStr);
+    } catch {
+      // keep original if parse fails
+    }
+  }
+
   return next();
 }
 
@@ -86,6 +177,29 @@ function logResponse(requestParams, response, context, ee, next) {
   const method = (requestParams.method || 'GET').toUpperCase();
   const startTime = requestParams._startTime || Date.now();
   const durationMs = Math.max(0, Date.now() - startTime);
+
+  // Auto-extract common variables from response JSON into context.vars for subsequent steps
+  if (response && response.body) {
+    try {
+      const resJson = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
+      if (resJson && typeof resJson === 'object') {
+        const idVal = resJson.id || resJson._id || resJson.studentId || resJson.userId || resJson.user?.id || resJson.user?._id;
+        if (idVal && context.vars) {
+          context.vars['user.id'] = context.vars['user.id'] || idVal;
+          context.vars['user_id'] = context.vars['user_id'] || idVal;
+          context.vars['id'] = context.vars['id'] || idVal;
+          context.vars['studentId'] = context.vars['studentId'] || idVal;
+        }
+
+        const tokenCandidate = resJson.access_token || resJson.token || resJson.jwt || resJson.authorization || resJson.user?.token || resJson.user?.access_token;
+        if (tokenCandidate && typeof tokenCandidate === 'string' && context.vars) {
+          context.vars['token'] = context.vars['token'] || tokenCandidate;
+          context.vars['access_token'] = context.vars['access_token'] || tokenCandidate;
+          context.vars['authorization'] = context.vars['authorization'] || (tokenCandidate.startsWith('Bearer ') ? tokenCandidate : `Bearer ${tokenCandidate}`);
+        }
+      }
+    } catch {}
+  }
 
   const studentIdentifier = (context.vars && (context.vars.email || context.vars.username || context.vars.studentId || context.vars.name)) || `VU ${context.vars?._vuId || 'Unknown'}`;
   const stepName = requestParams.name || requestParams._stepName || `${method} ${url}`;

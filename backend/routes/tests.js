@@ -276,14 +276,41 @@ router.post('/start', (req, res) => {
       capture.push({ json: '$.user.token', as: 'user_token' });
       capture.push({ json: '$.user.access_token', as: 'user_access_token' });
 
+      // Auto-capture common user/student ID fields with aliases
+      capture.push({ json: '$.user.id', as: 'user.id' });
+      capture.push({ json: '$.user.id', as: 'user_id' });
+      capture.push({ json: '$.user.id', as: 'id' });
+      capture.push({ json: '$.user.id', as: 'studentId' });
+      capture.push({ json: '$.user.id', as: 'userId' });
+
+      capture.push({ json: '$.user._id', as: 'user._id' });
+      capture.push({ json: '$.user._id', as: 'user_id' });
+      capture.push({ json: '$.user._id', as: 'id' });
+      capture.push({ json: '$.user._id', as: 'studentId' });
+
+      capture.push({ json: '$.id', as: 'id' });
+      capture.push({ json: '$.id', as: 'user.id' });
+      capture.push({ json: '$.id', as: 'user_id' });
+
+      capture.push({ json: '$._id', as: 'id' });
+      capture.push({ json: '$._id', as: 'user_id' });
+
+      capture.push({ json: '$.studentId', as: 'studentId' });
+      capture.push({ json: '$.studentId', as: 'user.id' });
+      capture.push({ json: '$.userId', as: 'userId' });
+      capture.push({ json: '$.userId', as: 'user.id' });
+
       // Auto-capture all discovered response keys
       if (Array.isArray(step.responseKeys)) {
         step.responseKeys.forEach(key => {
           // Convert dot-notation to JSONPath: user.id → $.user.id
           const jsonPath = '$.' + key.replace(/\[0\]/g, '[0]');
-          const varName = key.replace(/[.\[\]]/g, '_').replace(/_+$/,'');
-          if (!capture.some(c => c.as === varName)) {
-            capture.push({ json: jsonPath, as: varName });
+          const varNameUnderscore = key.replace(/[.\[\]]/g, '_').replace(/_+$/,'');
+          if (!capture.some(c => c.as === varNameUnderscore)) {
+            capture.push({ json: jsonPath, as: varNameUnderscore });
+          }
+          if (!capture.some(c => c.as === key)) {
+            capture.push({ json: jsonPath, as: key });
           }
         });
       }

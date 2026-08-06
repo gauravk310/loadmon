@@ -316,17 +316,6 @@ router.post('/start', (req, res) => {
       }
 
       const headers = { ...(step.headers || {}) };
-      // Auto-inject Cookie & Authorization headers for subsequent steps if not explicitly set
-      if (idx > 0) {
-        const hasCookie = Object.keys(headers).some(h => h.toLowerCase() === 'cookie');
-        if (!hasCookie) {
-          headers['Cookie'] = '{{ authCookie }}';
-        }
-        const hasAuth = Object.keys(headers).some(h => h.toLowerCase() === 'authorization');
-        if (!hasAuth) {
-          headers['Authorization'] = 'Bearer {{ access_token }}';
-        }
-      }
 
       return {
         ...step,

@@ -127,22 +127,42 @@ function beforeStep(requestParams, context, ee, next) {
     });
   };
 
-  // Resolve URL placeholders (e.g. {{user.id}})
+  // Resolve URL placeholders (e.g. {{user.id}} or {{user._id}})
   if (requestParams.url) {
-    requestParams.url = resolveValue(requestParams.url);
+    let resolvedUrl = resolveValue(requestParams.url);
+    if (/\{\{\s*[\w.\[\]]+\s*\}\}/.test(resolvedUrl)) {
+      const fallbackId = context.vars?.['user.id']
+        || context.vars?.['user._id']
+        || context.vars?.['user_id']
+        || context.vars?.['id']
+        || context.vars?.['_id']
+        || context.vars?.['studentId']
+        || context.vars?.['userId']
+        || context.vars?.user?.id
+        || context.vars?.user?._id;
+      if (fallbackId && fallbackId !== 'undefined') {
+        resolvedUrl = resolvedUrl.replace(/\{\{\s*[\w.\[\]]+\s*\}\}/g, fallbackId);
+      }
+    }
+    requestParams.url = resolvedUrl;
   }
 
-  // Resolve headers placeholders & auto-inject auth headers
+  // Resolve headers placeholders & strip invalid/unresolved header entries
   requestParams.headers = requestParams.headers || {};
   for (const [hk, hv] of Object.entries(requestParams.headers)) {
     if (typeof hv === 'string') {
-      requestParams.headers[hk] = resolveValue(hv);
+      const resolved = resolveValue(hv);
+      if (!resolved || resolved === 'undefined' || resolved === 'null' || /^\{\{.*\}\}$/.test(resolved.trim())) {
+        delete requestParams.headers[hk];
+      } else {
+        requestParams.headers[hk] = resolved;
+      }
     }
   }
 
   // Auto-propagate Cookie header if missing and authCookie is available
   const hasCookieHeader = Object.keys(requestParams.headers).some(h => h.toLowerCase() === 'cookie');
-  if (!hasCookieHeader && context.vars?.authCookie) {
+  if (!hasCookieHeader && context.vars?.authCookie && context.vars.authCookie !== 'undefined') {
     requestParams.headers['Cookie'] = context.vars.authCookie;
   }
 
@@ -150,7 +170,7 @@ function beforeStep(requestParams, context, ee, next) {
   const hasAuthHeader = Object.keys(requestParams.headers).some(h => h.toLowerCase() === 'authorization');
   if (!hasAuthHeader) {
     const tokenVal = context.vars?.authorization || context.vars?.access_token || context.vars?.token || context.vars?.jwt;
-    if (tokenVal) {
+    if (tokenVal && tokenVal !== 'undefined') {
       requestParams.headers['Authorization'] = tokenVal.startsWith('Bearer ') ? tokenVal : `Bearer ${tokenVal}`;
     }
   }
@@ -183,19 +203,30 @@ function logResponse(requestParams, response, context, ee, next) {
     try {
       const resJson = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
       if (resJson && typeof resJson === 'object') {
-        const idVal = resJson.id || resJson._id || resJson.studentId || resJson.userId || resJson.user?.id || resJson.user?._id;
+        const userObj = resJson.user || resJson.data?.user || resJson.data || resJson;
+        const idVal = userObj.id || userObj._id || resJson.id || resJson._id || resJson.studentId || resJson.userId;
         if (idVal && context.vars) {
-          context.vars['user.id'] = context.vars['user.id'] || idVal;
-          context.vars['user_id'] = context.vars['user_id'] || idVal;
-          context.vars['id'] = context.vars['id'] || idVal;
-          context.vars['studentId'] = context.vars['studentId'] || idVal;
+          context.vars['user.id'] = idVal;
+          context.vars['user_id'] = idVal;
+          context.vars['user._id'] = idVal;
+          context.vars['id'] = idVal;
+          context.vars['studentId'] = idVal;
+          context.vars['userId'] = idVal;
+
+          context.vars.user = context.vars.user || {};
+          context.vars.user.id = idVal;
+          context.vars.user._id = idVal;
         }
 
-        const tokenCandidate = resJson.access_token || resJson.token || resJson.jwt || resJson.authorization || resJson.user?.token || resJson.user?.access_token;
+        const tokenCandidate = resJson.access_token || resJson.token || resJson.jwt || resJson.authorization || userObj.token || userObj.access_token;
         if (tokenCandidate && typeof tokenCandidate === 'string' && context.vars) {
-          context.vars['token'] = context.vars['token'] || tokenCandidate;
-          context.vars['access_token'] = context.vars['access_token'] || tokenCandidate;
-          context.vars['authorization'] = context.vars['authorization'] || (tokenCandidate.startsWith('Bearer ') ? tokenCandidate : `Bearer ${tokenCandidate}`);
+          context.vars['token'] = tokenCandidate;
+          context.vars['access_token'] = tokenCandidate;
+          context.vars['authorization'] = tokenCandidate.startsWith('Bearer ') ? tokenCandidate : `Bearer ${tokenCandidate}`;
+          if (context.vars.user) {
+            context.vars.user.token = tokenCandidate;
+            context.vars.user.access_token = tokenCandidate;
+          }
         }
       }
     } catch {}

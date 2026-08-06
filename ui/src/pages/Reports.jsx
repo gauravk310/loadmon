@@ -570,7 +570,7 @@ function StudentExecutionReport({ students = [], rawLogs = [] }) {
         <div style={{ flex: 1, minWidth: 200 }}>
           <input
             type="text"
-            className="input input-sm"
+            className="form-input"
             placeholder="🔍 Search student email, step name, endpoint..."
             value={search}
             onChange={e => setSearch(e.target.value)}

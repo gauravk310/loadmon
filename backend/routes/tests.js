@@ -206,20 +206,19 @@ function buildYaml(config, phases, environment) {
       flowYaml += `          headers:${headersYaml}\n`;
     }
 
-    const bodyObj = config.body || {};
-    let bodyFields = '';
-    Object.entries(bodyObj).forEach(([k, v]) => {
-      bodyFields += `\n            ${k}: "${v}"`;
-    });
-    if (method !== 'get' && bodyFields) {
-      flowYaml += `          json:${bodyFields}\n`;
+    if (['post', 'put', 'patch'].includes(method) && config.body) {
+      let bodyString = typeof config.body === 'string' ? config.body : JSON.stringify(config.body, null, 2);
+      if (bodyString && bodyString !== '{}') {
+        const indentedBody = bodyString.split('\n').map(line => `            ${line}`).join('\n');
+        flowYaml += `          json:\n${indentedBody}\n`;
+      }
     }
     flowYaml += `          beforeRequest: "beforeStep"\n`;
     flowYaml += `          afterResponse: "logResponse"\n`;
     flowYaml += `      - think: 1\n`;
   }
 
-  const scenarioName = config.scenarioName || 'Chain Load Test';
+  const scenarioName = config.scenarioName || 'Load Test';
 
   return `config:
   target: "${config.serverUrl}"
@@ -256,9 +255,10 @@ router.post('/start', (req, res) => {
     config = clientConfig;
   }
 
-  // Merge clientConfig if provided and valid
-  if (clientConfig && typeof clientConfig === 'object' && Array.isArray(clientConfig.steps) && clientConfig.steps.length > 0) {
-    config = { ...config, ...clientConfig };
+  // Merge clientConfig if provided and valid (except steps, which are managed via chain or single request mode)
+  if (clientConfig && typeof clientConfig === 'object') {
+    const { steps: _ignoreSteps, ...restClientConfig } = clientConfig;
+    config = { ...config, ...restClientConfig };
   }
 
   // Chain override: if a chain is provided, use its steps and environment URLs
@@ -291,6 +291,9 @@ router.post('/start', (req, res) => {
       scenarioName: chain.name || 'Chain Load Test',
       steps: chainSteps,
     };
+  } else {
+    // No chain selected (Single Request mode) — clear steps so buildYaml uses single request configuration
+    config.steps = [];
   }
 
   if (!config || typeof config !== 'object') {

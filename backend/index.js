@@ -33,15 +33,15 @@ if (!fs.existsSync(configPath)) {
       {
         id: 'app_default',
         name: 'Default Application',
-        appUrl: 'http://localhost:4000',
-        serverUrl: 'https://loadmon-be.onrender.com',
-        hostname: 'loadmon-be.onrender.com'
+        appUrl: '',
+        serverUrl: '',
+        hostname: ''
       }
     ],
     selectedAppId: 'app_default',
-    appUrl: 'http://localhost:4000',
-    serverUrl: 'https://loadmon-be.onrender.com',
-    hostname: 'loadmon-be.onrender.com',
+    appUrl: '',
+    serverUrl: '',
+    hostname: '',
     targetEndpoint: '/api/auth/signin',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

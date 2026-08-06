@@ -9,7 +9,10 @@ export function AppProvider({ children }) {
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
-      return saved ? JSON.parse(saved) : null
+      if (!saved) return null
+      const parsed = JSON.parse(saved)
+      if (parsed) delete parsed.steps
+      return parsed
     } catch {
       return null
     }
@@ -35,8 +38,9 @@ export function AppProvider({ children }) {
       .then(r => r.json())
       .then(d => {
         if (d.success && d.config) {
-          setConfig(d.config)
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d.config)) } catch {}
+          const cleanConfig = { ...d.config, steps: [] }
+          setConfig(cleanConfig)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanConfig)) } catch {}
         }
       })
       .catch(console.error)

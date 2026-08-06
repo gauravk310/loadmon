@@ -27,9 +27,9 @@ export default function Configure() {
         {
           id: 'app_default',
           name: 'AssessQ Backend',
-          appUrl: config.appUrl || 'http://localhost:4000',
-          serverUrl: config.serverUrl || 'http://localhost:5000',
-          hostname: config.hostname || 'localhost:5000'
+          appUrl: config.appUrl || '',
+          serverUrl: config.serverUrl || '',
+          hostname: config.hostname || ''
         }
       ]
       const applications = (config.applications && config.applications.length > 0)
@@ -45,13 +45,18 @@ export default function Configure() {
       setForm({
         applications,
         selectedAppId,
-        appUrl:      activeApp.appUrl || '',
-        serverUrl:   activeApp.serverUrl || '',
-        hostname:    activeApp.hostname || '',
-        httpTimeout: config.httpTimeout || 30,
-        maxSockets:  config.maxSockets || 5000,
-        randomIp:    config.randomIp ?? false,
-        phases:      config.phases || defaultPhases(),
+        appUrl:          activeApp.appUrl || '',
+        serverUrl:       activeApp.serverUrl || '',
+        hostname:        activeApp.hostname || '',
+        scenarioName:    config.scenarioName || 'Single Request Load Test',
+        method:          config.method || 'POST',
+        targetEndpoint:  config.targetEndpoint || '/api/auth/signin',
+        headersText:     typeof config.headers === 'string' ? config.headers : JSON.stringify(config.headers || { 'Content-Type': 'application/json' }, null, 2),
+        bodyText:        typeof config.body === 'string' ? config.body : JSON.stringify(config.body || { email: '{{ email }}', password: '{{ password }}' }, null, 2),
+        httpTimeout:     config.httpTimeout || 30,
+        maxSockets:      config.maxSockets || 5000,
+        randomIp:        config.randomIp ?? false,
+        phases:          config.phases || defaultPhases(),
       })
     }
   }, [config, form])
@@ -175,11 +180,19 @@ export default function Configure() {
   }
 
   // ── Prepare configuration for saving ──────────────────
-  const prepareSaveData = () => ({
-    ...form,
-    // Keep existing steps from config — don't overwrite them from here
-    steps: config?.steps || [],
-  })
+  const prepareSaveData = () => {
+    let headers = {}
+    try { headers = JSON.parse(form.headersText) } catch { headers = form.headersText }
+    let body = {}
+    try { body = JSON.parse(form.bodyText) } catch { body = form.bodyText }
+
+    return {
+      ...form,
+      headers,
+      body,
+      steps: [],
+    }
+  }
 
   // ── Save ──────────────────────────────────────────────
   const handleSave = async () => {
@@ -290,6 +303,80 @@ export default function Configure() {
               <input id="input-hostname" className="form-input" value={form.hostname}
                 onChange={e => updateUrlField('hostname', e.target.value)}
                 placeholder="localhost:5000" />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Single Request Target Configuration ────────── */}
+        <div className="card card-p">
+          <h3 className="mb-1" style={{ color: 'var(--text-secondary)' }}>🎯 Default Single Request Configuration</h3>
+          <p className="text-sm text-muted mb-3">
+            This endpoint request will be executed for all users during load tests when <strong>None (Single Request)</strong> is selected on the Dashboard.
+          </p>
+
+          <div className="grid-3 mb-3">
+            <div className="form-group">
+              <label className="form-label" htmlFor="input-scenario-name">Scenario Name</label>
+              <input
+                id="input-scenario-name"
+                className="form-input"
+                value={form.scenarioName || ''}
+                onChange={e => set('scenarioName', e.target.value)}
+                placeholder="Single Request Load Test"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="select-method">HTTP Method</label>
+              <select
+                id="select-method"
+                className="form-select"
+                value={form.method || 'POST'}
+                onChange={e => set('method', e.target.value)}
+              >
+                {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="input-endpoint">Target Endpoint Path</label>
+              <input
+                id="input-endpoint"
+                className="form-input"
+                value={form.targetEndpoint || ''}
+                onChange={e => set('targetEndpoint', e.target.value)}
+                placeholder="/api/auth/signin"
+              />
+            </div>
+          </div>
+
+          <div className="grid-2">
+            <div className="form-group">
+              <label className="form-label" htmlFor="textarea-headers">Request Headers (JSON)</label>
+              <textarea
+                id="textarea-headers"
+                className="form-input mono"
+                rows={5}
+                style={{ fontSize: '0.82rem' }}
+                value={form.headersText || ''}
+                onChange={e => set('headersText', e.target.value)}
+                placeholder='{\n  "Content-Type": "application/json"\n}'
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="textarea-body">Request Body (JSON)</label>
+              <textarea
+                id="textarea-body"
+                className="form-input mono"
+                rows={5}
+                style={{ fontSize: '0.82rem' }}
+                value={form.bodyText || ''}
+                onChange={e => set('bodyText', e.target.value)}
+                placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}'
+              />
             </div>
           </div>
         </div>

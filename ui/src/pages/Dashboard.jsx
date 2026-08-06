@@ -227,7 +227,7 @@ export default function Dashboard() {
     const result = await startTest({
       environment: 'custom',
       phases: activePhases,
-      chain: selectedChain || undefined
+      chain: selectedChain || null
     })
     setStopping(false)
     if (!result.success) setError(result.error)
@@ -254,18 +254,18 @@ export default function Dashboard() {
           {!testStatus.running && (
             <>
               {/* Chain selector */}
-              <div className="flex items-center gap-1" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.5rem', background: 'var(--bg-overlay)' }}>
+              <div className="flex items-center gap-1.5" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.2rem 0.5rem', background: 'var(--bg-overlay)' }}>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>🔗 Chain:</span>
                 <select
                   id="chain-select"
                   className="form-select"
-                  style={{ width: 'auto', minWidth: 140, border: 'none', background: 'transparent', fontSize: '0.85rem' }}
+                  style={{ width: 'auto', minWidth: 160, border: 'none', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
                   value={selectedChainId || ''}
                   onChange={e => setSelectedChainId(e.target.value || null)}
                 >
-                  <option value="">None (Simple)</option>
+                  <option value="" style={{ background: '#161b27', color: '#f1f5f9' }}>None ({config?.scenarioName || 'Single Endpoint'})</option>
                   {chains.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id} style={{ background: '#161b27', color: '#f1f5f9' }}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -277,13 +277,13 @@ export default function Dashboard() {
                   value={selectedPreset}
                   onChange={e => setSelectedPreset(e.target.value)}
                   className="form-select"
-                  style={{ width: 'auto' }}
+                  style={{ width: 'auto', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
                 >
-                  <option value="default">⚙️ Default Config</option>
-                  <option value="quick">⚡ Quick (30s)</option>
-                  <option value="moderate">🚀 Moderate (2m)</option>
-                  <option value="heavy">🔥 Heavy (~2k VUs)</option>
-                  <option value="stress">💀 Stress (3k+ VUs)</option>
+                  <option value="default" style={{ background: '#161b27', color: '#f1f5f9' }}>⚙️ Default Config</option>
+                  <option value="quick" style={{ background: '#161b27', color: '#f1f5f9' }}>⚡ Quick (30s)</option>
+                  <option value="moderate" style={{ background: '#161b27', color: '#f1f5f9' }}>🚀 Moderate (2m)</option>
+                  <option value="heavy" style={{ background: '#161b27', color: '#f1f5f9' }}>🔥 Heavy (~2k VUs)</option>
+                  <option value="stress" style={{ background: '#161b27', color: '#f1f5f9' }}>💀 Stress (3k+ VUs)</option>
                 </select>
               ) : (
                 <div className="flex items-center gap-1" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.5rem', background: 'var(--bg-overlay)' }}>
@@ -358,6 +358,29 @@ export default function Dashboard() {
                   {i + 1}. {s.method} {s.endpoint.substring(0, 25)}{s.endpoint.length > 25 ? '…' : ''}
                 </span>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Single Request banner when no chain is selected */}
+      {!isChainMode && !testStatus.running && (
+        <div className="card card-p mb-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-overlay)', padding: '0.6rem 1.25rem' }}>
+          <div className="flex items-center gap-3">
+            <span style={{ fontSize: '1.1rem' }}>🎯</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Single Request Target:
+              </span>
+              <span className="badge badge-accent" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                {config?.method || 'POST'}
+              </span>
+              <code style={{ color: 'var(--cyan)', fontSize: '0.8rem' }}>
+                {config?.targetEndpoint || '/api/auth/signin'}
+              </code>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '0.5rem' }}>
+                (Configured in Configure page · Runs for all VUsers when no chain is selected)
+              </span>
             </div>
           </div>
         </div>
@@ -648,18 +671,23 @@ function RealtimeUserStepTable({ config, stepLogs, setStepLogs, testStatus, API,
       fetch(`${API}/results/students`)
         .then(r => r.json())
         .then(res => {
-          if (isMounted && res.success && Array.isArray(res.rawLogs) && res.rawLogs.length > 0) {
-            setStepLogs(res.rawLogs)
+          if (isMounted && res.success && Array.isArray(res.rawLogs)) {
+            // If in Single Request mode, filter out old default multi-step chain logs
+            const oldChainStepNames = ['Student Login', 'Get Enrollments', 'Open Selected Class', 'Get Class Tests']
+            const filtered = (!selectedChain)
+              ? res.rawLogs.filter(l => !oldChainStepNames.includes(l.stepName))
+              : res.rawLogs
+            setStepLogs(filtered)
           }
         })
         .catch(() => {})
     }
     return () => { isMounted = false }
-  }, [API, testStatus.running, setStepLogs])
+  }, [API, testStatus.running, setStepLogs, selectedChain])
 
   // Derive step columns
   const stepColumns = useMemo(() => {
-    // Prefer chain steps
+    // Prefer chain steps if a chain is selected
     if (selectedChain?.steps?.length > 0) {
       return selectedChain.steps.map((s, idx) => ({
         id: s.name || `Step ${idx + 1}`,
@@ -668,32 +696,17 @@ function RealtimeUserStepTable({ config, stepLogs, setStepLogs, testStatus, API,
         endpoint: s.endpoint || ''
       }))
     }
-    if (config?.steps && config.steps.length > 0) {
-      return config.steps.map((s, idx) => ({
-        id: s.name || `Step ${idx + 1}`,
-        name: s.name || `Step ${idx + 1}: ${(s.method || 'GET').toUpperCase()} ${s.endpoint}`,
-        method: (s.method || 'GET').toUpperCase(),
-        endpoint: s.endpoint || ''
-      }))
-    }
 
-    const uniqueSteps = new Map()
-    stepLogs.forEach(log => {
-      if (log.stepName && !uniqueSteps.has(log.stepName)) {
-        uniqueSteps.set(log.stepName, {
-          id: log.stepName,
-          name: log.stepName,
-          method: log.method || 'GET',
-          endpoint: log.url ? extractPath(log.url) : ''
-        })
-      }
-    })
-    if (uniqueSteps.size > 0) return Array.from(uniqueSteps.values())
-
+    // Single Request mode — strictly 1 column
     const method = (config?.method || 'POST').toUpperCase()
     const endpoint = config?.targetEndpoint || '/api'
-    return [{ id: config?.scenarioName || `${method} ${endpoint}`, name: config?.scenarioName || `${method} ${endpoint}`, method, endpoint }]
-  }, [config, stepLogs, selectedChain])
+    return [{
+      id: config?.scenarioName || `${method} ${endpoint}`,
+      name: config?.scenarioName || `${method} ${endpoint}`,
+      method,
+      endpoint
+    }]
+  }, [config, selectedChain])
 
   // Group by user
   const userMap = useMemo(() => {
@@ -758,7 +771,7 @@ function RealtimeUserStepTable({ config, stepLogs, setStepLogs, testStatus, API,
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <input
             type="text"
-            className="form-control"
+            className="form-input"
             placeholder="🔍 Search email / VU..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}

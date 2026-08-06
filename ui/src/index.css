@@ -335,9 +335,22 @@ code, pre { font-family: var(--font-mono); }
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-.form-input::placeholder { color: var(--text-muted); }
-.form-select { cursor: pointer; appearance: none; }
-.form-textarea { resize: vertical; min-height: 100px; font-family: var(--font-mono); font-size: 0.82rem; }
+.form-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1em 1em;
+  padding-right: 2.2rem;
+}
+
+.form-select option,
+select option {
+  background-color: #161b27 !important;
+  color: #f1f5f9 !important;
+  padding: 8px 12px;
+}
 
 /* ── Switch / Toggle ────────────────────────────────────── */
 .form-switch-row {

@@ -188,20 +188,12 @@ export default function ChainBuilder() {
   const { config, saveChain, deleteChain, chains, fetchChains, API } = useApp()
 
   const [chainName, setChainName] = useState('My API Chain')
-  const [selectedAppId, setSelectedAppId] = useState('')
   const [steps, setSteps] = useState([newStep(0)])
   const [expandedStepId, setExpandedStepId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [editingChainId, setEditingChainId] = useState(null)
-
-  // Initialize app selection from config
-  useEffect(() => {
-    if (config && config.applications && config.applications.length > 0 && !selectedAppId) {
-      setSelectedAppId(config.selectedAppId || config.applications[0].id)
-    }
-  }, [config, selectedAppId])
 
   // Auto expand first step
   useEffect(() => {
@@ -210,8 +202,8 @@ export default function ChainBuilder() {
     }
   }, [])
 
-  // ── Derived: selected app info ────────────────────────────
-  const selectedApp = config?.applications?.find(a => a.id === selectedAppId) || null
+  // ── Always use the globally selected app from Configure page ──
+  const selectedApp = config?.applications?.find(a => a.id === config?.selectedAppId) || config?.applications?.[0] || null
   const serverUrl = selectedApp?.serverUrl || config?.serverUrl || ''
   const appUrl = selectedApp?.appUrl || config?.appUrl || ''
 
@@ -353,7 +345,10 @@ export default function ChainBuilder() {
             runError: result.error || null,
             responseJson: result.json || null,
             responseBody: result.body || null,
+            responseStatus: result.status || null,
+            responseDuration: result.durationMs || null,
             resolvedUrl: result.resolvedUrl || null,
+            sentOrigin: result.sentOrigin || null,
             responseKeys: result.responseKeys || next[idx].responseKeys || [],
           }
         })
@@ -376,7 +371,7 @@ export default function ChainBuilder() {
     const payload = {
       id: editingChainId || undefined,
       name: chainName.trim(),
-      appId: selectedAppId,
+      appId: config?.selectedAppId || selectedApp?.id,
       serverUrl,
       appUrl,
       steps: steps.map(s => ({
@@ -406,7 +401,6 @@ export default function ChainBuilder() {
   const loadChainForEdit = (chain) => {
     setEditingChainId(chain.id)
     setChainName(chain.name)
-    setSelectedAppId(chain.appId || config?.selectedAppId || '')
     setSteps(chain.steps.map(s => ({
       ...s,
       runStatus: null, runError: null
@@ -417,7 +411,6 @@ export default function ChainBuilder() {
   const startNewChain = () => {
     setEditingChainId(null)
     setChainName('My API Chain')
-    setSelectedAppId(config?.selectedAppId || config?.applications?.[0]?.id || '')
     const s = newStep(0)
     setSteps([s])
     setExpandedStepId(s.id)
@@ -503,39 +496,45 @@ export default function ChainBuilder() {
           {/* Chain identity */}
           <div className="card card-p">
             <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>⚙️ Chain Configuration</h3>
-            <div className="grid-2" style={{ gap: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="chain-name-input">Chain Name</label>
-                <input
-                  id="chain-name-input"
-                  className="form-input"
-                  value={chainName}
-                  onChange={e => setChainName(e.target.value)}
-                  placeholder="e.g. Student Login Flow"
-                  style={{ fontWeight: 600 }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="chain-app-select">Target Application</label>
-                <select
-                  id="chain-app-select"
-                  className="form-select"
-                  value={selectedAppId}
-                  onChange={e => setSelectedAppId(e.target.value)}
-                >
-                  {(config?.applications || []).map(app => (
-                    <option key={app.id} value={app.id}>
-                      {app.name} {app.serverUrl ? `(${app.serverUrl})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="chain-name-input">Chain Name</label>
+              <input
+                id="chain-name-input"
+                className="form-input"
+                value={chainName}
+                onChange={e => setChainName(e.target.value)}
+                placeholder="e.g. Student Login Flow"
+                style={{ fontWeight: 600 }}
+              />
             </div>
-            {serverUrl && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                🌐 Target Server: <code style={{ color: 'var(--cyan)', fontSize: '0.78rem' }}>{serverUrl}</code>
-              </div>
-            )}
+            <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              {selectedApp ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>🎯 Target Application:</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{selectedApp.name}</span>
+                </div>
+              ) : null}
+              {serverUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>🌐 Target Server:</span>
+                  <code style={{ color: 'var(--cyan)', fontSize: '0.78rem' }}>{serverUrl}</code>
+                </div>
+              )}
+              {appUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>🔗 App URL (Origin):</span>
+                  <code style={{ color: 'var(--accent-light)', fontSize: '0.78rem' }}>{appUrl}</code>
+                </div>
+              )}
+              {!serverUrl && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--warning)' }}>
+                  ⚠ No target server configured. Please set one in the <strong>Configure</strong> page.
+                </div>
+              )}
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                To change the target, update it in the <strong>Configure</strong> page.
+              </span>
+            </div>
           </div>
 
           {/* Step cards */}
@@ -724,46 +723,117 @@ export default function ChainBuilder() {
                           )}
                         </div>
 
-                        {/* Response display */}
-                        {step.runStatus === 'error' && step.runError && (
-                          <div className="chain-response-panel error" style={{ marginTop: '0.75rem' }}>
-                            <div className="chain-response-title">❌ Error</div>
-                            <div style={{ color: 'var(--danger)', fontSize: '0.82rem' }}>{step.runError}</div>
-                          </div>
-                        )}
-
-                        {step.runStatus === 'success' && (
-                          <div className="chain-response-panel success" style={{ marginTop: '0.75rem' }}>
-                            <div className="chain-response-title">
-                              ✅ Response
+                        {/* ── Unified Response Panel (shown after any run attempt) ── */}
+                        {(step.runStatus === 'success' || step.runStatus === 'error') && (
+                          <div
+                            className="chain-response-panel"
+                            style={{
+                              marginTop: '0.75rem',
+                              border: `1px solid ${step.runStatus === 'success' ? 'var(--success)' : 'var(--danger)'}`,
+                              borderRadius: 'var(--radius-md)',
+                              background: step.runStatus === 'success'
+                                ? 'rgba(16,185,129,0.06)'
+                                : 'rgba(239,68,68,0.06)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {/* Header bar */}
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '0.75rem',
+                              padding: '0.6rem 0.9rem',
+                              borderBottom: '1px solid var(--border)',
+                              background: 'var(--bg-elevated)',
+                              flexWrap: 'wrap',
+                            }}>
+                              {/* Status badge */}
+                              <span style={{
+                                padding: '2px 10px', borderRadius: 20, fontWeight: 700, fontSize: '0.8rem',
+                                background: step.runStatus === 'success' ? 'var(--success)' : 'var(--danger)',
+                                color: '#fff',
+                              }}>
+                                {step.responseStatus ?? (step.runStatus === 'success' ? '2xx' : 'ERR')}
+                              </span>
+                              {/* URL */}
                               {step.resolvedUrl && (
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', marginLeft: '0.75rem', color: 'var(--cyan)' }}>
+                                <code style={{ fontSize: '0.72rem', color: 'var(--cyan)', flex: 1, wordBreak: 'break-all' }}>
                                   {step.resolvedUrl}
+                                </code>
+                              )}
+                              {/* Duration */}
+                              {step.responseDuration != null && (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                                  ⏱ {step.responseDuration} ms
                                 </span>
                               )}
                             </div>
 
-                            {/* Extracted keys */}
-                            {step.responseKeys && step.responseKeys.length > 0 && (
-                              <div style={{ marginBottom: '0.75rem' }}>
-                                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>
-                                  📦 Extracted Variables (available in next steps):
+                            <div style={{ padding: '0.75rem 0.9rem' }}>
+                              {/* Connection error (no HTTP response) */}
+                              {step.runError && !step.responseStatus && (
+                                <div style={{ color: 'var(--danger)', fontSize: '0.82rem', marginBottom: '0.5rem' }}>
+                                  ❌ {step.runError}
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                                  {step.responseKeys.map((key, ki) => (
-                                    <span key={ki} className="response-key-chip">
-                                      {`{{${key}}}`}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* JSON response */}
-                            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Response JSON:</div>
-                            <pre className="chain-response-json">
-                              {JSON.stringify(step.responseJson, null, 2) || step.responseBody || 'No response body'}
-                            </pre>
+                              {/* Extracted variables */}
+                              {step.runStatus === 'success' && step.responseKeys?.length > 0 && (
+                                <div style={{ marginBottom: '0.75rem' }}>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.4rem' }}>
+                                    📦 Extracted Variables (use in next steps)
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                    {step.responseKeys.map((key, ki) => (
+                                      <span key={ki} className="response-key-chip">{'{{' + key + '}}'}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Response body */}
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                                RESPONSE BODY
+                              </div>
+                              <pre className="chain-response-json" style={{
+                                maxHeight: 280,
+                                overflowY: 'auto',
+                                margin: 0,
+                                fontSize: '0.78rem',
+                                color: step.runStatus === 'success' ? 'var(--text-primary)' : 'var(--danger)',
+                              }}>
+                                {step.responseJson
+                                  ? JSON.stringify(step.responseJson, null, 2)
+                                  : step.responseBody || '(no response body)'}
+                              </pre>
+
+                              {/* Request Origin footer */}
+                              {step.sentOrigin && (
+                                <div style={{
+                                  marginTop: '0.75rem',
+                                  paddingTop: '0.6rem',
+                                  borderTop: '1px solid var(--border)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  flexWrap: 'wrap',
+                                }}>
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ORIGIN SENT</span>
+                                  <code style={{
+                                    fontSize: '0.72rem',
+                                    color: step.runStatus === 'success' ? 'var(--success)' : 'var(--warning)',
+                                    background: 'var(--bg-base)',
+                                    padding: '2px 8px',
+                                    borderRadius: 4,
+                                  }}>
+                                    {step.sentOrigin}
+                                  </code>
+                                  {step.runStatus === 'error' && step.responseStatus && (
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
+                                      ← make sure this domain is in the target server&apos;s CORS allowed origins
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

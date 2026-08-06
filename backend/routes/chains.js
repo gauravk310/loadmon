@@ -10,6 +10,15 @@ const https = require('https');
 const chainsPath = path.join(__dirname, '..', 'chains.json');
 const configPath = path.join(__dirname, '..', 'config.json');
 
+// ── Helper: load config ────────────────────────────────────
+function loadConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
 // ── Helper: load chains ───────────────────────────────────
 function loadChains() {
   try {
@@ -64,8 +73,27 @@ function resolveVars(str, context) {
   });
 }
 
+function randomPublicIPv4() {
+  let first;
+  do {
+    first = Math.floor(Math.random() * 223) + 1;
+  } while (
+    first === 10 ||
+    first === 127 ||
+    first === 169 ||
+    first === 172 ||
+    first === 192
+  );
+
+  const second = Math.floor(Math.random() * 256);
+  const third = Math.floor(Math.random() * 256);
+  const fourth = Math.floor(Math.random() * 254) + 1;
+
+  return `${first}.${second}.${third}.${fourth}`;
+}
+
 // ── Helper: make HTTP request ─────────────────────────────
-function proxyRequest({ serverUrl, endpoint, method, headers, body }) {
+function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
   return new Promise((resolve, reject) => {
     const fullUrl = serverUrl.replace(/\/$/, '') + endpoint;
     let parsedUrl;
@@ -79,10 +107,40 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body }) {
     const lib = isHttps ? https : http;
     const bodyStr = body && typeof body === 'object' ? JSON.stringify(body) : (body || '');
 
+    // ── Build request headers that mimic a real browser/Artillery request ──
+    const defaultOrigin = appUrl
+      ? appUrl.replace(/\/$/, '')
+      : (serverUrl ? new URL(serverUrl).origin : '');
+
+    const cfg = loadConfig();
+
     const reqHeaders = {
       'Content-Type': 'application/json',
-      ...headers,
+      'Accept': 'application/json, text/plain, */*',
+      'User-Agent': 'LoadMon/1.0 (Chain Builder)',
+      'Host': parsedUrl.hostname,
     };
+
+    if (cfg.randomIp !== false) {
+      reqHeaders['X-Forwarded-For'] = randomPublicIPv4();
+    }
+
+    if (defaultOrigin) {
+      reqHeaders['Origin'] = defaultOrigin;
+      reqHeaders['Referer'] = `${defaultOrigin}/`;
+    }
+
+    // Merge custom step headers without letting empty keys/values corrupt defaults
+    if (headers && typeof headers === 'object') {
+      for (const [k, v] of Object.entries(headers)) {
+        if (k && k.trim() && v !== undefined && v !== null && v !== '') {
+          const existingKey = Object.keys(reqHeaders).find(h => h.toLowerCase() === k.toLowerCase());
+          if (existingKey) delete reqHeaders[existingKey];
+          reqHeaders[k] = v;
+        }
+      }
+    }
+
     if (bodyStr) {
       reqHeaders['Content-Length'] = Buffer.byteLength(bodyStr);
     }
@@ -107,6 +165,7 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body }) {
         resolve({
           status: res.statusCode,
           headers: res.headers,
+          headersSent: reqHeaders,
           body: data,
           json,
           durationMs,
@@ -191,10 +250,23 @@ router.delete('/:id', (req, res) => {
 //
 // Returns: array of { stepIndex, status, json, durationMs, success, resolvedUrl, responseKeys }
 router.post('/run-step', async (req, res) => {
-  const { serverUrl, appUrl, steps, stepIndex, context: initContext = {} } = req.body;
+  let { serverUrl, appUrl, steps, stepIndex, context: initContext = {} } = req.body;
+
+  // ── Fall back to config's selected application if serverUrl/appUrl not provided ──
+  const cfg = loadConfig();
+  const selectedApp = cfg.applications?.find(a => a.id === cfg.selectedAppId)
+    || cfg.applications?.[0]
+    || null;
 
   if (!serverUrl) {
-    return res.status(400).json({ success: false, error: 'serverUrl is required' });
+    serverUrl = selectedApp?.serverUrl || cfg.serverUrl || '';
+  }
+  if (!appUrl) {
+    appUrl = selectedApp?.appUrl || cfg.appUrl || '';
+  }
+
+  if (!serverUrl) {
+    return res.status(400).json({ success: false, error: 'serverUrl is required — configure a Target Application in the Configure page.' });
   }
   if (!Array.isArray(steps) || steps.length === 0) {
     return res.status(400).json({ success: false, error: 'steps array is required' });
@@ -203,9 +275,21 @@ router.post('/run-step', async (req, res) => {
     return res.status(400).json({ success: false, error: 'valid stepIndex is required' });
   }
 
+  // Load default user variables from uploads/userData.json if available
+  let defaultUserVars = {};
+  try {
+    const userDataPath = path.join(__dirname, '..', 'uploads', 'userData.json');
+    if (fs.existsSync(userDataPath)) {
+      const rows = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
+      if (Array.isArray(rows) && rows.length > 0) {
+        defaultUserVars = rows[0];
+      }
+    }
+  } catch {}
+
   const results = [];
-  // Context accumulates variables from responses
-  let context = { ...initContext };
+  // Context accumulates variables from user data + previous step responses
+  let context = { ...defaultUserVars, ...initContext };
 
   // Execute steps 0..stepIndex sequentially
   for (let i = 0; i <= stepIndex; i++) {
@@ -235,7 +319,8 @@ router.post('/run-step', async (req, res) => {
         endpoint: resolvedEndpoint,
         method,
         headers: resolvedHeaders,
-        body: resolvedBody
+        body: resolvedBody,
+        appUrl  // used to set Origin header so target CORS middleware accepts the request
       });
 
       // Extract response keys for autocomplete
@@ -267,30 +352,35 @@ router.post('/run-step', async (req, res) => {
         context['authCookie'] = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
       }
 
+      // Compute the origin that was sent so UI can display it for debugging
+      const sentOrigin = result.headersSent?.Origin || result.headersSent?.origin || (appUrl ? appUrl.replace(/\/$/, '') : (serverUrl ? new URL(serverUrl).origin : '(None)'));
+
       results.push({
         stepIndex: i,
         stepName: step.name || `Step ${i + 1}`,
         resolvedUrl: serverUrl.replace(/\/$/, '') + resolvedEndpoint,
+        sentOrigin,           // the Origin header value sent with the request
         status: result.status,
         success: result.success,
         json: result.json,
-        body: result.json ? undefined : result.body,
+        body: result.body,   // always include raw body so UI can show error responses too
         durationMs: result.durationMs,
         responseKeys
       });
 
-      // If this step failed and it's not the last, we could stop
-      // but for chain building we still continue to give the user feedback
+      // If this step failed, stop the chain (no point running subsequent steps)
       if (!result.success) break;
 
     } catch (err) {
+      // Surface a clear error — network/DNS failures can look like CORS errors in the browser
+      // but since this runs server-side, the real cause is always in err.message
       results.push({
         stepIndex: i,
         stepName: step.name || `Step ${i + 1}`,
         resolvedUrl: serverUrl.replace(/\/$/, '') + resolvedEndpoint,
         status: null,
         success: false,
-        error: err.message,
+        error: `Connection failed: ${err.message}`,
         durationMs: null,
         responseKeys: []
       });

@@ -53,8 +53,15 @@ if (!fs.existsSync(configPath)) {
   }, null, 2));
 }
 
+// ── Seed chains.json if not exists ──────────────────────
+const chainsPath = path.join(__dirname, 'chains.json');
+if (!fs.existsSync(chainsPath)) {
+  fs.writeFileSync(chainsPath, JSON.stringify([], null, 2));
+}
+
 // ── Routes ────────────────────────────────────────────────
 app.use('/api/config',  require('./routes/config'));
+app.use('/api/chains',  require('./routes/chains'));
 app.use('/api/tests',   require('./routes/tests'));
 app.use('/api/upload',  require('./routes/upload'));
 app.use('/api/results', require('./routes/results'));

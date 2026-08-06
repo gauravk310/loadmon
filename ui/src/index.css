@@ -986,5 +986,198 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--text-secondary);
 }
 
+/* ════════════════════════════════════════════════════════════
+   Chain Builder — New Styles
+   ════════════════════════════════════════════════════════════ */
 
+/* ── btn-accent variant ──────────────────────────────────── */
+.btn-accent {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  border: none;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.4);
+}
+.btn-accent:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+  transform: translateY(-1px);
+}
 
+/* ── Chain step card variants ────────────────────────────── */
+.chain-step-card {
+  border: 1px solid var(--border);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.chain-step-card.step-ran-success {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.15);
+}
+.chain-step-card.step-ran-error {
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15);
+}
+
+/* ── Variable autocomplete dropdown ─────────────────────── */
+.var-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.2);
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: fadeInSlide 0.15s ease;
+}
+.var-dropdown-header {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  background: rgba(99,102,241,0.08);
+}
+.var-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border);
+}
+.var-dropdown-item:last-child { border-bottom: none; }
+.var-dropdown-item:hover {
+  background: var(--accent-dim);
+}
+.var-dropdown-item .var-key {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--cyan);
+  font-weight: 600;
+}
+.var-dropdown-item .var-source {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ── Variable chips in step body ────────────────────────── */
+.chain-vars-preview {
+  background: rgba(34, 211, 238, 0.04);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+.var-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--cyan);
+  cursor: default;
+}
+.var-chip-source {
+  background: rgba(34, 211, 238, 0.2);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(34, 211, 238, 0.8);
+}
+
+/* ── Response key chips (after run step) ─────────────────── */
+.response-key-chip {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent-light);
+}
+
+/* ── Response panel ──────────────────────────────────────── */
+.chain-response-panel {
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+}
+.chain-response-panel.success {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.chain-response-panel.error {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.chain-response-title {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.chain-response-json {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* ── Chain list sidebar ──────────────────────────────────── */
+.chain-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+  margin-bottom: 0.3rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chain-list-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+.chain-list-item.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+/* ── Live progress ticker ────────────────────────────────── */
+.progress-ticker-row:hover {
+  background: var(--bg-hover);
+  transition: background 0.1s;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes fadeInSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

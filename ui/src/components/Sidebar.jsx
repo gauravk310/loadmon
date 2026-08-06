@@ -3,10 +3,11 @@ import { useApp } from '../context/AppContext.jsx'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
-  { to: '/',          icon: '⚡', label: 'Dashboard'    },
-  { to: '/configure', icon: '⚙️', label: 'Configure'    },
-  { to: '/data',      icon: '📂', label: 'Data Manager' },
-  { to: '/reports',   icon: '📊', label: 'Reports'      },
+  { to: '/',             icon: '⚡', label: 'Dashboard'     },
+  { to: '/chain-builder', icon: '🔗', label: 'Chain Builder' },
+  { to: '/configure',    icon: '⚙️', label: 'Configure'     },
+  { to: '/data',         icon: '📂', label: 'Data Manager'  },
+  { to: '/reports',      icon: '📊', label: 'Reports'       },
 ]
 
 export default function Sidebar() {

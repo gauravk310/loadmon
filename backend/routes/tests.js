@@ -247,7 +247,7 @@ router.post('/start', (req, res) => {
     return res.status(409).json({ success: false, error: 'A test is already running' });
   }
 
-  const { environment = 'custom', phases, config: clientConfig } = req.body;
+  const { environment = 'custom', phases, config: clientConfig, chain } = req.body;
 
   let config;
   try {
@@ -259,6 +259,38 @@ router.post('/start', (req, res) => {
   // Merge clientConfig if provided and valid
   if (clientConfig && typeof clientConfig === 'object' && Array.isArray(clientConfig.steps) && clientConfig.steps.length > 0) {
     config = { ...config, ...clientConfig };
+  }
+
+  // Chain override: if a chain is provided, use its steps and environment URLs
+  if (chain && typeof chain === 'object' && Array.isArray(chain.steps) && chain.steps.length > 0) {
+    // Auto-generate capture rules from responseKeys stored during chain building
+    const chainSteps = chain.steps.map(step => {
+      const capture = [];
+      // Auto-capture cookie
+      capture.push({ header: 'set-cookie', as: 'authCookie' });
+      // Auto-capture all discovered response keys
+      if (Array.isArray(step.responseKeys)) {
+        step.responseKeys.forEach(key => {
+          // Convert dot-notation to JSONPath: user.id → $.user.id
+          const jsonPath = '$.' + key.replace(/\[0\]/g, '[0]');
+          const varName = key.replace(/[.\[\]]/g, '_').replace(/_+$/,'');
+          capture.push({ json: jsonPath, as: varName });
+        });
+      }
+      return {
+        ...step,
+        capture
+      };
+    });
+
+    config = {
+      ...config,
+      serverUrl: chain.serverUrl || config.serverUrl,
+      appUrl: chain.appUrl || config.appUrl,
+      hostname: chain.hostname || config.hostname,
+      scenarioName: chain.name || 'Chain Load Test',
+      steps: chainSteps,
+    };
   }
 
   if (!config || typeof config !== 'object') {

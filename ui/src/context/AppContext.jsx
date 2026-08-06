@@ -20,6 +20,11 @@ export function AppProvider({ children }) {
   const [logs, setLogs] = useState([])
   const [stepLogs, setStepLogs] = useState([])
   const [lastSummary, setLastSummary] = useState(null)
+
+  // ── Chain state ───────────────────────────────────────────
+  const [chains, setChains] = useState([])
+  const [selectedChainId, setSelectedChainId] = useState(null)
+
   const sseRef = useRef(null)
   const reconnectTimerRef = useRef(null)
   const intentionalClose = useRef(false)
@@ -37,6 +42,43 @@ export function AppProvider({ children }) {
       .catch(console.error)
   }, [])
 
+  // ── Load chains from backend ──────────────────────────────
+  const fetchChains = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/chains`)
+      const data = await res.json()
+      if (data.success && Array.isArray(data.chains)) {
+        setChains(data.chains)
+      }
+    } catch (e) {
+      console.error('Failed to fetch chains:', e)
+    }
+  }, [])
+
+  useEffect(() => { fetchChains() }, [fetchChains])
+
+  const saveChain = useCallback(async (chainData) => {
+    const res = await fetch(`${API}/chains`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(chainData)
+    })
+    const data = await res.json()
+    if (data.success) {
+      await fetchChains()
+    }
+    return data
+  }, [fetchChains])
+
+  const deleteChain = useCallback(async (chainId) => {
+    const res = await fetch(`${API}/chains/${chainId}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.success) {
+      await fetchChains()
+      if (selectedChainId === chainId) setSelectedChainId(null)
+    }
+    return data
+  }, [fetchChains, selectedChainId])
 
   // ── SSE connection ────────────────────────────────────
   const connectSSE = useCallback(() => {
@@ -122,15 +164,19 @@ export function AppProvider({ children }) {
     return { success: true, config: merged }
   }, [config])
 
-  // ── Start test with user's specific config ────────────────
-  const startTest = useCallback(async ({ environment = 'custom', phases } = {}) => {
+  // ── Start test — supports simple and chain modes ──────────
+  const startTest = useCallback(async ({ environment = 'custom', phases, chain } = {}) => {
     setLiveMetrics([])
     setLogs([])
     setStepLogs([])
+    const body = { environment, phases, config }
+    if (chain) {
+      body.chain = chain
+    }
     const res = await fetch(`${API}/tests/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ environment, phases, config })
+      body: JSON.stringify(body)
     })
     return res.json()
   }, [config])
@@ -145,6 +191,8 @@ export function AppProvider({ children }) {
       config, setConfig, saveConfig,
       testStatus, liveMetrics, logs, stepLogs, setStepLogs, lastSummary,
       startTest, stopTest,
+      chains, selectedChainId, setSelectedChainId,
+      saveChain, deleteChain, fetchChains,
       API
     }}>
       {children}

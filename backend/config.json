@@ -1,33 +1,83 @@
 {
+  "selectedAppId": "app_default",
   "applications": [
     {
       "id": "app_default",
-      "name": "Default Application",
+      "name": "AssessQ Backend",
       "appUrl": "http://localhost:4000",
-      "serverUrl": "hhttp://localhost:5000",
+      "serverUrl": "http://localhost:5000",
       "hostname": "localhost:5000"
     }
   ],
-  "selectedAppId": "app_default",
   "appUrl": "http://localhost:4000",
   "serverUrl": "https://loadmon-be.onrender.com",
   "hostname": "loadmon-be.onrender.com",
-  "targetEndpoint": "/api/auth/signin",
-  "method": "POST",
-  "headers": {
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "email": "{{ email }}",
-    "password": "{{ password }}"
-  },
   "httpTimeout": 30,
   "maxSockets": 5000,
   "randomIp": true,
-  "fieldMapping": {
-    "email": "email",
-    "password": "password"
-  },
+  "scenarioName": "Student Test Access Flow",
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "Student Login",
+      "method": "POST",
+      "endpoint": "/api/auth/signin",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "email": "{{ email }}",
+        "password": "{{ password }}"
+      },
+      "capture": [
+        {
+          "header": "set-cookie",
+          "as": "authCookie"
+        },
+        {
+          "json": "$.user.id",
+          "as": "studentId"
+        }
+      ],
+      "think": 1
+    },
+    {
+      "id": "step_2",
+      "name": "Get Enrollments",
+      "method": "GET",
+      "endpoint": "/api/enrollment/get-all/student/{{ studentId }}",
+      "headers": {
+        "Cookie": "{{ authCookie }}"
+      },
+      "capture": [
+        {
+          "json": "$[0].classId",
+          "as": "classId"
+        }
+      ],
+      "think": 1
+    },
+    {
+      "id": "step_3",
+      "name": "Open Selected Class",
+      "method": "GET",
+      "endpoint": "/api/class/get/{{ classId }}",
+      "headers": {
+        "Cookie": "{{ authCookie }}"
+      },
+      "think": 1
+    },
+    {
+      "id": "step_4",
+      "name": "Get Class Tests",
+      "method": "GET",
+      "endpoint": "/api/test/get-all/{{ classId }}",
+      "headers": {
+        "Cookie": "{{ authCookie }}"
+      },
+      "think": 1
+    }
+  ],
   "phases": [
     {
       "duration": 30,

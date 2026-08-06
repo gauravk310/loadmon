@@ -18,25 +18,25 @@ export function AppProvider({ children }) {
   const [testStatus, setTestStatus] = useState({ running: false })
   const [liveMetrics, setLiveMetrics] = useState([])
   const [logs, setLogs] = useState([])
+  const [stepLogs, setStepLogs] = useState([])
   const [lastSummary, setLastSummary] = useState(null)
   const sseRef = useRef(null)
   const reconnectTimerRef = useRef(null)
   const intentionalClose = useRef(false)
 
-  // ── Load server defaults if no local config exists ────────
+  // ── Always sync config from backend server ────────────────
   useEffect(() => {
-    if (!config) {
-      fetch(`${API}/config`)
-        .then(r => r.json())
-        .then(d => {
-          if (d.success && d.config) {
-            setConfig(d.config)
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d.config)) } catch {}
-          }
-        })
-        .catch(console.error)
-    }
-  }, [config])
+    fetch(`${API}/config`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.config) {
+          setConfig(d.config)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d.config)) } catch {}
+        }
+      })
+      .catch(console.error)
+  }, [])
+
 
   // ── SSE connection ────────────────────────────────────
   const connectSSE = useCallback(() => {
@@ -56,6 +56,9 @@ export function AppProvider({ children }) {
     es.addEventListener('status', e => {
       const data = JSON.parse(e.data)
       setTestStatus(data)
+      if (data.type === 'started') {
+        setStepLogs([])
+      }
     })
 
     es.addEventListener('metrics', e => {
@@ -66,6 +69,11 @@ export function AppProvider({ children }) {
     es.addEventListener('log', e => {
       const data = JSON.parse(e.data)
       setLogs(prev => [...prev.slice(-200), data])
+    })
+
+    es.addEventListener('stepLog', e => {
+      const data = JSON.parse(e.data)
+      setStepLogs(prev => [...prev, data])
     })
 
     es.addEventListener('summary', e => {
@@ -118,6 +126,7 @@ export function AppProvider({ children }) {
   const startTest = useCallback(async ({ environment = 'custom', phases } = {}) => {
     setLiveMetrics([])
     setLogs([])
+    setStepLogs([])
     const res = await fetch(`${API}/tests/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -134,7 +143,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       config, setConfig, saveConfig,
-      testStatus, liveMetrics, logs, lastSummary,
+      testStatus, liveMetrics, logs, stepLogs, setStepLogs, lastSummary,
       startTest, stopTest,
       API
     }}>

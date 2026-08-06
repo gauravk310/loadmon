@@ -82,7 +82,7 @@ function splitLogText(text) {
 }
 
 export default function Dashboard() {
-  const { testStatus, liveMetrics, logs, startTest, stopTest, config } = useApp()
+  const { testStatus, liveMetrics, logs, stepLogs, setStepLogs, startTest, stopTest, config, API } = useApp()
   const [selectedPreset, setSelectedPreset] = useState('default')
   const [starting, setStopping] = useState(false)
   const [error, setError]       = useState(null)
@@ -262,7 +262,11 @@ export default function Dashboard() {
         </span>
         {config && (
           <span className="text-sm text-muted" style={{ marginLeft: 'auto' }}>
-            Target: <code className="mono" style={{ color: 'var(--accent-light)', fontSize: '0.8rem' }}>{config.serverUrl}{config.targetEndpoint}</code>
+            {config.steps && config.steps.length > 0 ? (
+              <span>Scenario: <code className="mono" style={{ color: 'var(--cyan)', fontSize: '0.8rem' }}>{config.scenarioName || 'Chain Load Test'}</code> ({config.steps.length} {config.steps.length === 1 ? 'step' : 'steps'})</span>
+            ) : (
+              <span>Target: <code className="mono" style={{ color: 'var(--accent-light)', fontSize: '0.8rem' }}>{config.serverUrl}{config.targetEndpoint}</code></span>
+            )}
           </span>
         )}
       </div>
@@ -362,6 +366,309 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* ── Real-Time User & Step Execution Matrix Table ── */}
+      <div className="card card-p style-glass" style={{ marginTop: '1.5rem' }}>
+        <RealtimeUserStepTable
+          config={config}
+          stepLogs={stepLogs}
+          setStepLogs={setStepLogs}
+          testStatus={testStatus}
+          API={API}
+        />
+      </div>
+    </div>
+  )
+}
+
+function RealtimeUserStepTable({ config, stepLogs, setStepLogs, testStatus, API }) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+
+  // Fetch existing logs on mount or when test finishes running
+  useEffect(() => {
+    let isMounted = true
+    if (!testStatus.running) {
+      fetch(`${API}/results/students`)
+        .then(r => r.json())
+        .then(res => {
+          if (isMounted && res.success && Array.isArray(res.rawLogs) && res.rawLogs.length > 0) {
+            setStepLogs(res.rawLogs)
+          }
+        })
+        .catch(() => {})
+    }
+    return () => { isMounted = false }
+  }, [API, testStatus.running, setStepLogs])
+
+  // Derive step columns from config or stepLogs
+  const stepColumns = useMemo(() => {
+    if (config?.steps && config.steps.length > 0) {
+      return config.steps.map((s, idx) => ({
+        id: s.name || `Step ${idx + 1}`,
+        name: s.name || `Step ${idx + 1}: ${(s.method || 'GET').toUpperCase()} ${s.endpoint}`,
+        method: (s.method || 'GET').toUpperCase(),
+        endpoint: s.endpoint || ''
+      }))
+    }
+
+    const uniqueSteps = new Map()
+    stepLogs.forEach(log => {
+      if (log.stepName && !uniqueSteps.has(log.stepName)) {
+        uniqueSteps.set(log.stepName, {
+          id: log.stepName,
+          name: log.stepName,
+          method: log.method || 'GET',
+          endpoint: log.url || ''
+        })
+      }
+    })
+    if (uniqueSteps.size > 0) return Array.from(uniqueSteps.values())
+
+    const method = (config?.method || 'POST').toUpperCase()
+    const endpoint = config?.targetEndpoint || '/api'
+    return [{
+      id: config?.scenarioName || `${method} ${endpoint}`,
+      name: config?.scenarioName || `${method} ${endpoint}`,
+      method,
+      endpoint
+    }]
+  }, [config, stepLogs])
+
+  // Group stepLogs by student user
+  const userMap = useMemo(() => {
+    const map = {}
+    stepLogs.forEach(log => {
+      const userKey = log.student || log.vuId || 'Unknown VU'
+      if (!map[userKey]) {
+        map[userKey] = {
+          student: userKey,
+          vuId: log.vuId,
+          studentDetails: log.studentDetails || {},
+          steps: {},
+          totalDurationMs: 0,
+          hasFailure: false,
+          executedCount: 0,
+          lastTimestamp: log.timestamp
+        }
+      }
+      map[userKey].steps[log.stepName] = log
+      map[userKey].totalDurationMs += (log.durationMs || 0)
+      map[userKey].executedCount++
+      if (!log.success) {
+        map[userKey].hasFailure = true
+      }
+      if (log.timestamp > map[userKey].lastTimestamp) {
+        map[userKey].lastTimestamp = log.timestamp
+      }
+    })
+    return map
+  }, [stepLogs])
+
+  const userList = useMemo(() => {
+    let list = Object.values(userMap)
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      list = list.filter(u =>
+        u.student.toLowerCase().includes(term) ||
+        (u.vuId && u.vuId.toLowerCase().includes(term))
+      )
+    }
+
+    if (statusFilter === 'FAILED') {
+      list = list.filter(u => u.hasFailure)
+    } else if (statusFilter === 'SUCCESS') {
+      list = list.filter(u => !u.hasFailure && u.executedCount > 0)
+    }
+
+    return list
+  }, [userMap, searchTerm, statusFilter])
+
+  const totalUsers = Object.keys(userMap).length
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <h2 className="section-title" style={{ margin: 0 }}>👥 Real-Time User &amp; Step Execution Matrix</h2>
+            {testStatus.running ? (
+              <span className="badge badge-success flex items-center gap-1" style={{ fontSize: '0.7rem' }}>
+                <span className="status-dot running" style={{ width: 6, height: 6 }} /> LIVE STREAMING
+              </span>
+            ) : (
+              <span className="badge" style={{ fontSize: '0.7rem', background: 'var(--bg-overlay)', color: 'var(--text-muted)' }}>
+                IDLE / COMPLETED
+              </span>
+            )}
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 2 }}>
+            Step-by-step user execution times and real-time pass/fail status
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="🔍 Search email / VU..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ width: 210, fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+          />
+
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{ width: 'auto', fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+          >
+            <option value="ALL">All Users ({totalUsers})</option>
+            <option value="SUCCESS">✅ Passed Only</option>
+            <option value="FAILED">❌ Failed Only</option>
+          </select>
+
+          <span className="badge badge-accent" style={{ fontSize: '0.75rem' }}>
+            {stepLogs.length} step logs
+          </span>
+        </div>
+      </div>
+
+      {userList.length === 0 ? (
+        <div className="empty-state" style={{ padding: '2rem' }}>
+          <div style={{ fontSize: '1.8rem', opacity: 0.3, marginBottom: '0.5rem' }}>⚡</div>
+          <div className="empty-desc" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            {stepLogs.length === 0
+              ? 'No real-time user step executions recorded yet. Click "Start Test" above to begin streaming.'
+              : 'No virtual users match your search or filter.'}
+          </div>
+        </div>
+      ) : (
+        <div className="table-wrap" style={{ overflowX: 'auto', maxHeight: 420 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <thead>
+              <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '0.65rem 1rem', textAlign: 'left', minWidth: 200, position: 'sticky', left: 0, background: 'var(--bg-elevated)', zIndex: 2 }}>
+                  Virtual User / Student
+                </th>
+                {stepColumns.map((col, idx) => (
+                  <th key={idx} style={{ padding: '0.65rem 1rem', textAlign: 'center', minWidth: 150 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Step {idx + 1}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--accent-light)', fontWeight: 500 }}>
+                      <span style={{ fontSize: '0.62rem', padding: '1px 4px', borderRadius: 3, background: 'rgba(255,255,255,0.08)', marginRight: 4 }}>
+                        {col.method}
+                      </span>
+                      {col.id.replace(/^Step \d+:\s*/i, '').substring(0, 20)}
+                    </div>
+                  </th>
+                ))}
+                <th style={{ padding: '0.65rem 1rem', textAlign: 'center', minWidth: 130 }}>
+                  Total / Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {userList.map((u, rIdx) => {
+                const totalSteps = stepColumns.length
+                const completedSteps = Object.keys(u.steps).length
+                const isComplete = completedSteps >= totalSteps
+                
+                return (
+                  <tr
+                    key={rIdx}
+                    style={{
+                      borderBottom: '1px solid var(--border)',
+                      background: u.hasFailure ? 'rgba(239, 68, 68, 0.04)' : undefined
+                    }}
+                  >
+                    <td style={{ padding: '0.65rem 1rem', position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span>👤</span> {u.student}
+                      </div>
+                      {u.vuId && (
+                        <div className="mono" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          {u.vuId.substring(0, 14)}
+                        </div>
+                      )}
+                    </td>
+
+                    {stepColumns.map((col, cIdx) => {
+                      const stepData = u.steps[col.name] || u.steps[col.id] || Object.values(u.steps).find(s => {
+                        if (s.stepName === col.name || s.stepName === col.id) return true
+                        if (!s.url) return false
+                        if (col.endpoint && s.url.includes(col.endpoint)) return true
+                        if (col.endpoint && col.endpoint.includes('{{')) {
+                          const pattern = col.endpoint.replace(/\{\{[^}]+\}\}/g, '[^/?#]+')
+                          try { return new RegExp(pattern).test(s.url) } catch { return false }
+                        }
+                        return false
+                      })
+
+                      if (stepData) {
+                        if (stepData.success) {
+                          return (
+                            <td key={cIdx} style={{ padding: '0.65rem 1rem', textAlign: 'center' }}>
+                              <span
+                                className="badge badge-success"
+                                style={{ fontSize: '0.72rem', padding: '3px 8px', fontWeight: 600 }}
+                                title={`Executed in ${stepData.durationMs}ms (HTTP ${stepData.status})`}
+                              >
+                                ✅ {stepData.durationMs} ms
+                              </span>
+                            </td>
+                          )
+                        } else {
+                          return (
+                            <td key={cIdx} style={{ padding: '0.65rem 1rem', textAlign: 'center' }}>
+                              <span
+                                className="badge badge-danger"
+                                style={{ fontSize: '0.72rem', padding: '3px 8px', fontWeight: 600 }}
+                                title={stepData.error || `Failed HTTP ${stepData.status}`}
+                              >
+                                ❌ Failed {stepData.status ? `(${stepData.status})` : ''}
+                              </span>
+                            </td>
+                          )
+                        }
+                      } else {
+                        return (
+                          <td key={cIdx} style={{ padding: '0.65rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                            {testStatus.running && cIdx === completedSteps ? (
+                              <span className="badge badge-accent animate-pulse" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                                ⏳ Pending
+                              </span>
+                            ) : (
+                              <span style={{ opacity: 0.4 }}>— Not Executed</span>
+                            )}
+                          </td>
+                        )
+                      }
+                    })}
+
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'center' }}>
+                      <div className="mono" style={{ fontWeight: 700, fontSize: '0.78rem' }}>
+                        {u.totalDurationMs} ms
+                      </div>
+                      <div style={{ marginTop: 2 }}>
+                        {u.hasFailure ? (
+                          <span className="badge badge-danger" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>FAILED</span>
+                        ) : isComplete ? (
+                          <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>PASSED</span>
+                        ) : (
+                          <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 5px', background: 'var(--bg-overlay)' }}>IN PROGRESS</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

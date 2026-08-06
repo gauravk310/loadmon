@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, Fragment } from 'react'
 import { Line, Bar, Doughnut } from 'react-chartjs-2'
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement,
@@ -41,22 +41,29 @@ function statusBadgeClass(code) {
 }
 
 export default function Reports() {
-  const [data, setData]     = useState(null)
-  const [errors, setErrors] = useState([])
+  const [data, setData]       = useState(null)
+  const [errors, setErrors]   = useState([])
+  const [students, setStudents] = useState([])
+  const [rawLogs, setRawLogs]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [noData, setNoData] = useState(false)
+  const [noData, setNoData]   = useState(false)
 
   useEffect(() => {
     Promise.all([
       fetch(`${API}/results`).then(r => r.json()),
       fetch(`${API}/results/errors`).then(r => r.json()),
-    ]).then(([res, errRes]) => {
+      fetch(`${API}/results/students`).then(r => r.json()),
+    ]).then(([res, errRes, stRes]) => {
       if (res.success && res.exists) {
         setData(res.data)
       } else {
         setNoData(true)
       }
       if (errRes.success) setErrors(errRes.errors || [])
+      if (stRes.success) {
+        setStudents(stRes.students || [])
+        setRawLogs(stRes.rawLogs || [])
+      }
       setLoading(false)
     }).catch(() => { setLoading(false); setNoData(true) })
   }, [])
@@ -68,20 +75,31 @@ export default function Reports() {
     Promise.all([
       fetch(`${API}/results`).then(r => r.json()),
       fetch(`${API}/results/errors`).then(r => r.json()),
-    ]).then(([res, errRes]) => {
+      fetch(`${API}/results/students`).then(r => r.json()),
+    ]).then(([res, errRes, stRes]) => {
       if (res.success && res.exists) setData(res.data)
       else setNoData(true)
       if (errRes.success) setErrors(errRes.errors || [])
+      if (stRes.success) {
+        setStudents(stRes.students || [])
+        setRawLogs(stRes.rawLogs || [])
+      }
       setLoading(false)
     })
   }
 
   const handleDownload = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const reportExport = {
+      aggregate: data?.aggregate,
+      students: students,
+      errors: errors,
+      rawStepLogs: rawLogs
+    }
+    const blob = new Blob([JSON.stringify(reportExport, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `loadmon-results-${Date.now()}.json`
+    a.download = `loadmon-report-${Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -209,6 +227,9 @@ export default function Reports() {
         <MetricCard label="VUs Failed"    value={vusFailed.toLocaleString()}    color={vusFailed > 0 ? 'danger' : 'default'} />
         <MetricCard label="Avg Response"  value={fmt(rt.mean)}  unit="ms" color="cyan" />
       </div>
+
+      {/* 🎓 Student Execution Flow & Step Performance Table */}
+      <StudentExecutionReport students={students} rawLogs={rawLogs} />
 
       {/* Response Time Breakdown */}
       <div className="card card-p mb-3">
@@ -406,6 +427,329 @@ function MetricCard({ label, value, unit, color = 'default' }) {
         {value}
         {unit && <span className="metric-unit">{unit}</span>}
       </div>
+    </div>
+  )
+}
+
+// 🎓 Student Execution Flow & Step Performance Component
+function StudentExecutionReport({ students = [], rawLogs = [] }) {
+  const [filter, setFilter] = useState('ALL') // 'ALL', 'SUCCESS', 'FAILED'
+  const [search, setSearch] = useState('')
+  const [viewMode, setViewMode] = useState('grouped') // 'grouped' or 'flat'
+  const [expanded, setExpanded] = useState({})
+
+  const toggleExpand = (studentId) => {
+    setExpanded(prev => ({ ...prev, [studentId]: !prev[studentId] }))
+  }
+
+  const successCount = useMemo(() => students.filter(s => s.status === 'SUCCESS').length, [students])
+  const failedCount = useMemo(() => students.filter(s => s.status === 'FAILED').length, [students])
+  const totalExecutedSteps = useMemo(() => rawLogs.length, [rawLogs])
+  const avgFlowTime = useMemo(() => {
+    if (!students.length) return 0
+    const sum = students.reduce((acc, s) => acc + (s.totalDurationMs || 0), 0)
+    return Math.round(sum / students.length)
+  }, [students])
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(st => {
+      if (filter === 'SUCCESS' && st.status !== 'SUCCESS') return false
+      if (filter === 'FAILED' && st.status !== 'FAILED') return false
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        const matchStudent = st.student?.toLowerCase().includes(q)
+        const matchVu = st.vuId?.toLowerCase().includes(q)
+        const matchStep = st.steps?.some(step =>
+          step.stepName?.toLowerCase().includes(q) ||
+          step.url?.toLowerCase().includes(q)
+        )
+        return matchStudent || matchVu || matchStep
+      }
+      return true
+    })
+  }, [students, filter, search])
+
+  const filteredRawLogs = useMemo(() => {
+    return rawLogs.filter(log => {
+      if (filter === 'SUCCESS' && !log.success) return false
+      if (filter === 'FAILED' && log.success) return false
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        return (
+          log.student?.toLowerCase().includes(q) ||
+          log.stepName?.toLowerCase().includes(q) ||
+          log.url?.toLowerCase().includes(q) ||
+          String(log.status).includes(q)
+        )
+      }
+      return true
+    })
+  }, [rawLogs, filter, search])
+
+  return (
+    <div className="card mb-3" style={{ padding: '1.25rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div>
+          <div className="section-title" style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>🎓</span> Student Flow Execution & Step Timings
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            List of student VUs executed, step-by-step timings, and execution outcome.
+          </div>
+        </div>
+
+        {/* View mode toggle */}
+        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-elevated)', padding: '0.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+          <button
+            className={`btn btn-sm ${viewMode === 'grouped' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setViewMode('grouped')}
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
+          >
+            👥 Grouped by Student ({students.length})
+          </button>
+          <button
+            className={`btn btn-sm ${viewMode === 'flat' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setViewMode('flat')}
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
+          >
+            📜 All Step Logs ({rawLogs.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Mini KPI Cards for Student Flow */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Total Students</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{students.length}</div>
+        </div>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Flow Succeeded</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--success)' }}>{successCount}</div>
+        </div>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Flow Failed</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: failedCount > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>{failedCount}</div>
+        </div>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Avg Flow Time</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8' }}>{avgFlowTime} <span style={{ fontSize: '0.65rem' }}>ms</span></div>
+        </div>
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Executed Steps</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent)' }}>{totalExecutedSteps}</div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button
+            className={`btn btn-sm ${filter === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setFilter('ALL')}
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}
+          >
+            All ({students.length})
+          </button>
+          <button
+            className={`btn btn-sm ${filter === 'SUCCESS' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setFilter('SUCCESS')}
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', color: filter === 'SUCCESS' ? undefined : 'var(--success)' }}
+          >
+            ✅ Success ({successCount})
+          </button>
+          <button
+            className={`btn btn-sm ${filter === 'FAILED' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setFilter('FAILED')}
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', color: filter === 'FAILED' ? undefined : 'var(--danger)' }}
+          >
+            ❌ Failed ({failedCount})
+          </button>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <input
+            type="text"
+            className="input input-sm"
+            placeholder="🔍 Search student email, step name, endpoint..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', fontSize: '0.8rem' }}
+          />
+        </div>
+      </div>
+
+      {/* Content View */}
+      {viewMode === 'grouped' ? (
+        filteredStudents.length > 0 ? (
+          <div className="table-wrap" style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}></th>
+                  <th>Student Email / Name</th>
+                  <th>VU ID</th>
+                  <th>Executed Steps</th>
+                  <th>Total Time</th>
+                  <th>Execution Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map((st, idx) => {
+                  const isExp = !!expanded[st.student]
+                  return (
+                    <Fragment key={st.student || idx}>
+                      <tr
+                        style={{ cursor: 'pointer', background: isExp ? 'rgba(255,255,255,0.03)' : undefined }}
+                        onClick={() => toggleExpand(st.student)}
+                      >
+                        <td style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {isExp ? '▼' : '▶'}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span>👤</span> {st.student}
+                          </div>
+                          {st.studentDetails?.name && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{st.studentDetails.name}</div>
+                          )}
+                        </td>
+                        <td className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {st.vuId ? st.vuId.substring(0, 16) : 'N/A'}
+                        </td>
+                        <td className="mono">
+                          <span className="badge badge-accent">{st.steps?.length || 0} steps</span>
+                        </td>
+                        <td className="mono" style={{ fontWeight: 700 }}>
+                          {st.totalDurationMs} ms
+                        </td>
+                        <td>
+                          <span className={`badge ${st.status === 'SUCCESS' ? 'badge-success' : 'badge-danger'}`}>
+                            {st.status === 'SUCCESS' ? '✅ Executed (Success)' : '❌ Failed'}
+                          </span>
+                        </td>
+                      </tr>
+
+                      {/* Expanded step breakdown sub-table */}
+                      {isExp && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '0.75rem 1rem 1rem 2.5rem', background: 'rgba(0,0,0,0.2)' }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              Step Execution Details for {st.student}:
+                            </div>
+                            <table style={{ width: '100%', fontSize: '0.78rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                  <th>Step Name</th>
+                                  <th>Method & Endpoint</th>
+                                  <th>Time Taken</th>
+                                  <th>Executed Status</th>
+                                  <th>HTTP Code</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {st.steps?.map((step, sIdx) => (
+                                  <tr key={sIdx} style={{ borderBottom: sIdx < st.steps.length - 1 ? '1px solid rgba(255,255,255,0.04)' : undefined }}>
+                                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                      {step.stepName || `Step ${sIdx + 1}`}
+                                    </td>
+                                    <td>
+                                      <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.1)', marginRight: 6 }}>
+                                        {step.method}
+                                      </span>
+                                      <code style={{ fontSize: '0.75rem', color: '#93c5fd' }}>{step.url}</code>
+                                    </td>
+                                    <td className="mono" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                                      {step.durationMs} ms
+                                    </td>
+                                    <td>
+                                      <span className={`badge ${step.success ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.68rem' }}>
+                                        {step.success ? 'Executed (Success)' : 'Failed'}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className={`badge ${statusBadgeClass(step.status)}`} style={{ fontSize: '0.68rem' }}>
+                                        {step.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state" style={{ padding: '2rem' }}>
+            <div className="empty-icon">📭</div>
+            <div className="empty-desc">No student execution records match your search or filter.</div>
+          </div>
+        )
+      ) : (
+        /* Flat Step Logs View */
+        filteredRawLogs.length > 0 ? (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Student Email / VU</th>
+                  <th>Step Name</th>
+                  <th>Endpoint</th>
+                  <th>Time Taken</th>
+                  <th>Status</th>
+                  <th>Outcome</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRawLogs.map((log, idx) => (
+                  <tr key={idx}>
+                    <td className="mono" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'N/A'}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>{log.student}</div>
+                    </td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
+                      {log.stepName}
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.1)', marginRight: 6 }}>
+                        {log.method}
+                      </span>
+                      <code style={{ fontSize: '0.74rem', color: '#93c5fd' }}>{log.url}</code>
+                    </td>
+                    <td className="mono" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                      {log.durationMs} ms
+                    </td>
+                    <td>
+                      <span className={`badge ${statusBadgeClass(log.status)}`} style={{ fontSize: '0.7rem' }}>
+                        {log.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${log.success ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.7rem' }}>
+                        {log.success ? '✅ Executed' : '❌ Failed'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state" style={{ padding: '2rem' }}>
+            <div className="empty-icon">📭</div>
+            <div className="empty-desc">No raw step logs found matching search.</div>
+          </div>
+        )
+      )}
     </div>
   )
 }

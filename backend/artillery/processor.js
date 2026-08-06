@@ -3,9 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 
-// Reset error logs at test start
+// Reset error and student logs at test start
 const errorLogPath = path.join(__dirname, 'error-logs.json');
+const studentLogPath = path.join(__dirname, 'student-logs.json');
 fs.writeFileSync(errorLogPath, '');
+fs.writeFileSync(studentLogPath, '');
 
 // ── Load user data ────────────────────────────────────────
 // Supports USERDATA_PATH env var (set by backend) or falls back to local uploads/
@@ -60,30 +62,78 @@ function assignUser(userContext, events, done) {
 
   // Random IP to bypass rate limiting (requires trust proxy on target)
   userContext.vars.randomIP = randomPublicIPv4();
+  if (!userContext.vars._vuId) {
+    userContext.vars._vuId = userContext.uuid || `VU-${userIndex}`;
+  }
 
   return done();
 }
 
+// ── beforeStep ────────────────────────────────────────────
+function beforeStep(requestParams, context, ee, next) {
+  requestParams._startTime = Date.now();
+  if (requestParams.name) {
+    requestParams._stepName = requestParams.name;
+  }
+  return next();
+}
+
 // ── logResponse ───────────────────────────────────────────
 function logResponse(requestParams, response, context, ee, next) {
-  const status = response.statusCode;
+  const status = response ? response.statusCode : 0;
   const isSuccess = status >= 200 && status < 300;
+  const url = requestParams.url || requestParams.uri || 'Unknown URL';
+  const method = (requestParams.method || 'GET').toUpperCase();
+  const startTime = requestParams._startTime || Date.now();
+  const durationMs = Math.max(0, Date.now() - startTime);
+
+  const studentIdentifier = (context.vars && (context.vars.email || context.vars.username || context.vars.studentId || context.vars.name)) || `VU ${context.vars?._vuId || 'Unknown'}`;
+  const stepName = requestParams.name || requestParams._stepName || `${method} ${url}`;
+
+  const body = response ? (typeof response.body === 'string'
+    ? response.body
+    : JSON.stringify(response.body || '')
+  ).substring(0, 250) : 'No response / network error';
+
+  // Record student step log entry
+  const stepLog = {
+    timestamp: new Date().toISOString(),
+    vuId: context.vars?._vuId || context.uuid,
+    student: studentIdentifier,
+    studentDetails: {
+      email: context.vars?.email || null,
+      name: context.vars?.name || context.vars?.fullName || null,
+      id: context.vars?.id || context.vars?.studentId || null,
+    },
+    stepName: stepName,
+    method: method,
+    url: url,
+    status: status || 'NETWORK_ERROR',
+    success: isSuccess,
+    executed: true,
+    durationMs: durationMs,
+    error: isSuccess ? null : body
+  };
+
+  try {
+    fs.appendFileSync(studentLogPath, JSON.stringify(stepLog) + '\n');
+    console.log('[STEP_LOG] ' + JSON.stringify(stepLog));
+  } catch (err) {
+    console.error('Failed to append student log:', err.message);
+  }
 
   if (isSuccess) {
     successCount++;
   } else {
     failCount++;
-    const body = (typeof response.body === 'string'
-      ? response.body
-      : JSON.stringify(response.body || '')
-    ).substring(0, 200);
-
+    const emailTag = studentIdentifier ? ` | VU: ${studentIdentifier}` : '';
     // Log to console (streamed to UI via SSE)
-    console.log(`❌ FAILED | Status: ${status} | ${body}`);
+    console.log(`❌ Step Failed [${status}] | URL: ${url}${emailTag} | Response: ${body}`);
 
     // Persist error for report
     const errorLog = {
       timestamp: new Date().toISOString(),
+      url: url,
       vars: context.vars,
       status: status || 'NETWORK_ERROR',
       body: body || 'Timeout or connection error'
@@ -103,4 +153,4 @@ function logResponse(requestParams, response, context, ee, next) {
   return next();
 }
 
-module.exports = { assignUser, logResponse };
+module.exports = { assignUser, beforeStep, logResponse };

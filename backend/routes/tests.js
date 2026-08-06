@@ -22,12 +22,12 @@ function findArtilleryBin() {
 }
 
 const artilleryDir = path.join(__dirname, '..', 'artillery');
-const uploadsDir  = path.join(__dirname, '..', 'uploads');
+const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 // ── Shared state ──────────────────────────────────────────
 let currentProcess = null;
-let testStatus  = { running: false, pid: null, startedAt: null, environment: null };
-let sseClients  = [];
+let testStatus = { running: false, pid: null, startedAt: null, environment: null };
+let sseClients = [];
 let metricsBuffer = [];
 
 function broadcast(event, data) {
@@ -43,8 +43,8 @@ function broadcast(event, data) {
 // This parser accumulates those blocks and emits a structured metrics object.
 class MetricsParser {
   constructor() {
-    this.buf          = '';
-    this.pending      = null;   // metrics object being built
+    this.buf = '';
+    this.pending = null;   // metrics object being built
     this.currentHisto = null;   // current histogram key (e.g. 'http.response_time')
   }
 
@@ -70,13 +70,13 @@ class MetricsParser {
   }
 
   _parseLine(raw, onMetric) {
-    const line    = raw.replace(/\r/g, '');
+    const line = raw.replace(/\r/g, '');
     const trimmed = line.trim();
 
     // ── New period boundary ─────────────────────────────────
     if (trimmed.includes('Metrics for period to:')) {
       this._emitPending(onMetric);
-      this.pending      = { counters: {}, summaries: {}, _ts: Date.now() };
+      this.pending = { counters: {}, summaries: {}, _ts: Date.now() };
       this.currentHisto = null;
       return;
     }
@@ -125,31 +125,101 @@ class MetricsParser {
 
 // ── Build dynamic YAML from config + phases ───────────────
 function buildYaml(config, phases, environment) {
-  let bodyFields = '';
-  const bodyObj = config.body || {};
-  Object.entries(bodyObj).forEach(([k, v]) => {
-    bodyFields += `\n            ${k}: "${v}"`;
-  });
-
   let phasesYaml = '';
   if (phases && phases.length > 0) {
     phases.forEach(p => {
       phasesYaml += `\n        - duration: ${p.duration}\n          arrivalRate: ${p.arrivalRate}`;
       if (p.rampTo) phasesYaml += `\n          rampTo: ${p.rampTo}`;
-      if (p.name)   phasesYaml += `\n          name: "${p.name}"`;
+      if (p.name) phasesYaml += `\n          name: "${p.name}"`;
     });
   } else {
     phasesYaml = `\n        - duration: 30\n          arrivalRate: 5\n          name: "Quick Test"`;
   }
-  const headers = config.headers || {};
-  let headersYaml = '';
-  Object.entries(headers).forEach(([k, v]) => {
-    headersYaml += `\n            ${k}: "${v}"`;
-  });
 
-  const randomIpHeader = config.randomIp === true ? `\n            X-Forwarded-For: "{{ randomIP }}"` : '';
-  const method   = (config.method || 'POST').toLowerCase();
-  const endpoint = config.targetEndpoint || '/api';
+  let flowYaml = '      - function: "assignUser"\n';
+  const steps = config.steps || [];
+
+  if (steps.length > 0) {
+    steps.forEach((step, idx) => {
+      const method = (step.method || 'GET').toLowerCase();
+      const name = step.name || `Step ${idx + 1}: ${method.toUpperCase()} ${step.endpoint}`;
+      flowYaml += `      - ${method}:\n`;
+      flowYaml += `          name: "${name}"\n`;
+      flowYaml += `          url: "${step.endpoint}"\n`;
+
+      const headers = step.headers || {};
+      let headersYaml = '';
+      if (config.randomIp) {
+        headersYaml += `\n            X-Forwarded-For: "{{ randomIP }}"`;
+      }
+      Object.entries(headers).forEach(([k, v]) => {
+        if (k && v !== undefined) {
+          headersYaml += `\n            ${k}: "${v}"`;
+        }
+      });
+      if (headersYaml) {
+        flowYaml += `          headers:${headersYaml}\n`;
+      }
+
+      if (['post', 'put', 'patch'].includes(method) && step.body) {
+        let bodyString = typeof step.body === 'string' ? step.body : JSON.stringify(step.body, null, 2);
+        const indentedBody = bodyString.split('\n').map(line => `            ${line}`).join('\n');
+        flowYaml += `          json:\n${indentedBody}\n`;
+      }
+
+      if (step.capture && Array.isArray(step.capture) && step.capture.length > 0) {
+        flowYaml += `          capture:\n`;
+        step.capture.forEach(c => {
+          if (c.json) {
+            flowYaml += `            - json: "${c.json}"\n              as: "${c.as}"\n`;
+          } else if (c.header) {
+            flowYaml += `            - header: "${c.header}"\n              as: "${c.as}"\n`;
+          }
+        });
+      }
+
+      flowYaml += `          beforeRequest: "beforeStep"\n`;
+      flowYaml += `          afterResponse: "logResponse"\n`;
+
+      if (step.think && Number(step.think) > 0) {
+        flowYaml += `      - think: ${Number(step.think)}\n`;
+      }
+    });
+  } else {
+    // Single step fallback
+    const method = (config.method || 'POST').toLowerCase();
+    const endpoint = config.targetEndpoint || '/api';
+    const name = config.scenarioName || `Single Step: ${method.toUpperCase()} ${endpoint}`;
+    flowYaml += `      - ${method}:\n`;
+    flowYaml += `          name: "${name}"\n`;
+    flowYaml += `          url: "${endpoint}"\n`;
+
+    const headers = config.headers || {};
+    let headersYaml = '';
+    if (config.randomIp) {
+      headersYaml += `\n            X-Forwarded-For: "{{ randomIP }}"`;
+    }
+    Object.entries(headers).forEach(([k, v]) => {
+      headersYaml += `\n            ${k}: "${v}"`;
+    });
+    if (headersYaml) {
+      flowYaml += `          headers:${headersYaml}\n`;
+    }
+
+    const bodyObj = config.body || {};
+    let bodyFields = '';
+    Object.entries(bodyObj).forEach(([k, v]) => {
+      bodyFields += `\n            ${k}: "${v}"`;
+    });
+    if (method !== 'get' && bodyFields) {
+      flowYaml += `          json:${bodyFields}\n`;
+    }
+    flowYaml += `          beforeRequest: "beforeStep"\n`;
+    flowYaml += `          afterResponse: "logResponse"\n`;
+    flowYaml += `      - think: 1\n`;
+  }
+
+  const scenarioName = config.scenarioName || 'Chain Load Test';
 
   return `config:
   target: "${config.serverUrl}"
@@ -166,15 +236,9 @@ function buildYaml(config, phases, environment) {
       phases:${phasesYaml}
 
 scenarios:
-  - name: "Load Test"
+  - name: "${scenarioName}"
     flow:
-      - function: "assignUser"
-      - ${method}:
-          url: "${endpoint}"
-          headers:${randomIpHeader}${headersYaml}
-${method !== 'get' && bodyFields ? `          json:${bodyFields}\n` : ''}          afterResponse: "logResponse"
-      - think: 1
-`;
+${flowYaml}`;
 }
 
 // ── POST /api/tests/start ─────────────────────────────────
@@ -185,14 +249,22 @@ router.post('/start', (req, res) => {
 
   const { environment = 'custom', phases, config: clientConfig } = req.body;
 
-  let config = clientConfig;
-  if (!config || typeof config !== 'object') {
-    try {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    } catch {
-      return res.status(400).json({ success: false, error: 'No configuration provided' });
-    }
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch {
+    config = clientConfig;
   }
+
+  // Merge clientConfig if provided and valid
+  if (clientConfig && typeof clientConfig === 'object' && Array.isArray(clientConfig.steps) && clientConfig.steps.length > 0) {
+    config = { ...config, ...clientConfig };
+  }
+
+  if (!config || typeof config !== 'object') {
+    return res.status(400).json({ success: false, error: 'No configuration provided' });
+  }
+
 
   const userDataPath = path.join(uploadsDir, 'userData.json');
   if (!fs.existsSync(userDataPath)) {
@@ -201,14 +273,16 @@ router.post('/start', (req, res) => {
 
   // Write dynamic YAML
   const yamlContent = buildYaml(config, phases, environment);
-  const yamlPath    = path.join(artilleryDir, 'runtime-test.yml');
+  const yamlPath = path.join(artilleryDir, 'runtime-test.yml');
   fs.writeFileSync(yamlPath, yamlContent);
 
   // Clear previous results
-  const resultsPath  = path.join(artilleryDir, 'results.json');
+  const resultsPath = path.join(artilleryDir, 'results.json');
   const errorLogPath = path.join(artilleryDir, 'error-logs.json');
+  const studentLogPath = path.join(artilleryDir, 'student-logs.json');
   if (fs.existsSync(resultsPath)) fs.unlinkSync(resultsPath);
   fs.writeFileSync(errorLogPath, '');
+  fs.writeFileSync(studentLogPath, '');
 
   metricsBuffer = [];
 
@@ -221,22 +295,22 @@ router.post('/start', (req, res) => {
 
   const env = {
     ...process.env,
-    APP_URL:       config.appUrl,
-    SERVER_URL:    config.serverUrl,
-    HOSTNAME:      config.hostname,
+    APP_URL: config.appUrl,
+    SERVER_URL: config.serverUrl,
+    HOSTNAME: config.hostname,
     USERDATA_PATH: userDataPath,
   };
 
   currentProcess = spawn(artilleryCmd, args, {
-    cwd:   artilleryDir,
+    cwd: artilleryDir,
     env,
     shell: process.platform === 'win32',
   });
 
   testStatus = {
-    running:     true,
-    pid:         currentProcess.pid,
-    startedAt:   new Date().toISOString(),
+    running: true,
+    pid: currentProcess.pid,
+    startedAt: new Date().toISOString(),
     environment,
   };
 
@@ -244,16 +318,44 @@ router.post('/start', (req, res) => {
 
   // ── Parse stdout for live metrics ──────────────────────────
   const parser = new MetricsParser();
+  let stdoutBuf = '';
 
   const onMetric = (metric) => {
     metricsBuffer.push(metric);
     broadcast('metrics', metric);
   };
 
+  const processStdoutLines = (chunkText, isFlush = false) => {
+    stdoutBuf += chunkText;
+    const lines = stdoutBuf.split('\n');
+    if (!isFlush) {
+      stdoutBuf = lines.pop(); // keep last incomplete line in buffer
+    } else {
+      stdoutBuf = '';
+    }
+
+    const displayLines = [];
+    lines.forEach(line => {
+      if (line.includes('[STEP_LOG]')) {
+        try {
+          const jsonStr = line.substring(line.indexOf('[STEP_LOG]') + 10).trim();
+          const stepLog = JSON.parse(jsonStr);
+          broadcast('stepLog', stepLog);
+        } catch (e) { }
+      } else {
+        displayLines.push(line);
+      }
+    });
+
+    const cleanText = displayLines.join('\n');
+    if (cleanText.trim()) {
+      broadcast('log', { text: cleanText, time: new Date().toISOString() });
+    }
+    parser.feed(lines.join('\n') + '\n', onMetric);
+  };
+
   currentProcess.stdout.on('data', (data) => {
-    const text = data.toString();
-    broadcast('log', { text, time: new Date().toISOString() });
-    parser.feed(text, onMetric);
+    processStdoutLines(data.toString(), false);
   });
 
   currentProcess.stderr.on('data', (data) => {
@@ -261,6 +363,9 @@ router.post('/start', (req, res) => {
   });
 
   currentProcess.on('close', (code) => {
+    if (stdoutBuf) {
+      processStdoutLines('', true);
+    }
     // Flush any in-progress period block
     parser.flush(onMetric);
 
@@ -318,7 +423,7 @@ router.get('/stream', (req, res) => {
 
   // Replay buffered metrics to new clients (e.g. page refresh mid-test)
   metricsBuffer.forEach(m => {
-    try { res.write(`event: metrics\ndata: ${JSON.stringify(m)}\n\n`); } catch {}
+    try { res.write(`event: metrics\ndata: ${JSON.stringify(m)}\n\n`); } catch { }
   });
 
   const client = { id: Date.now(), res };

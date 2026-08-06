@@ -50,19 +50,50 @@ function VarDropdown({ suggestions, onSelect, onClose }) {
   }, [onClose])
 
   if (!suggestions.length) return null
+
+  const authVars = suggestions.filter(s => s.isAuth)
+  const dataVars = suggestions.filter(s => !s.isAuth)
+
   return (
     <div className="var-dropdown" onMouseDown={e => e.stopPropagation()}>
       <div className="var-dropdown-header">💡 Available Variables</div>
-      {suggestions.map((s, i) => (
-        <div
-          key={i}
-          className="var-dropdown-item"
-          onMouseDown={() => { onSelect(s.key); onClose() }}
-        >
-          <span className="var-key">{`{{${s.key}}}`}</span>
-          <span className="var-source">← Step {s.stepNum}: {s.stepName}</span>
-        </div>
-      ))}
+      {authVars.length > 0 && (
+        <>
+          <div style={{ padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--success)', background: 'rgba(16,185,129,0.08)' }}>
+            🔑 SESSION & AUTH TOKENS
+          </div>
+          {authVars.map((s, i) => (
+            <div
+              key={`auth-${i}`}
+              className="var-dropdown-item"
+              onMouseDown={() => { onSelect(s.key); onClose() }}
+            >
+              <span className="var-key" style={{ color: 'var(--success)' }}>{`{{${s.key}}}`}</span>
+              <span className="var-source">← Step {s.stepNum}: {s.stepName}</span>
+            </div>
+          ))}
+        </>
+      )}
+
+      {dataVars.length > 0 && (
+        <>
+          {authVars.length > 0 && (
+            <div style={{ padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--cyan)', background: 'rgba(34,211,238,0.08)' }}>
+              📦 RESPONSE VARIABLES
+            </div>
+          )}
+          {dataVars.map((s, i) => (
+            <div
+              key={`data-${i}`}
+              className="var-dropdown-item"
+              onMouseDown={() => { onSelect(s.key); onClose() }}
+            >
+              <span className="var-key">{`{{${s.key}}}`}</span>
+              <span className="var-source">← Step {s.stepNum}: {s.stepName}</span>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }
@@ -212,9 +243,26 @@ export default function ChainBuilder() {
     const suggestions = []
     for (let i = 0; i < upToStepIndex; i++) {
       const step = steps[i]
+      if (step.capturedData) {
+        if (step.capturedData.cookies) {
+          suggestions.push({ key: 'authCookie', stepNum: i + 1, stepName: step.name, isAuth: true })
+        }
+        if (step.capturedData.tokens?.access_token) {
+          suggestions.push({ key: 'access_token', stepNum: i + 1, stepName: step.name, isAuth: true })
+        }
+        if (step.capturedData.tokens?.token) {
+          suggestions.push({ key: 'token', stepNum: i + 1, stepName: step.name, isAuth: true })
+        }
+        if (step.capturedData.tokens?.authorization) {
+          suggestions.push({ key: 'authorization', stepNum: i + 1, stepName: step.name, isAuth: true })
+        }
+      }
       if (step.responseKeys && step.responseKeys.length > 0) {
         step.responseKeys.forEach(key => {
-          suggestions.push({ key, stepNum: i + 1, stepName: step.name })
+          if (!suggestions.some(s => s.key === key)) {
+            const isAuth = ['token', 'access_token', 'jwt', 'authCookie', 'authorization', 'bearerToken'].includes(key)
+            suggestions.push({ key, stepNum: i + 1, stepName: step.name, isAuth })
+          }
         })
       }
     }
@@ -350,6 +398,7 @@ export default function ChainBuilder() {
             resolvedUrl: result.resolvedUrl || null,
             sentOrigin: result.sentOrigin || null,
             responseKeys: result.responseKeys || next[idx].responseKeys || [],
+            capturedData: result.capturedData || null,
           }
         })
         return next
@@ -775,17 +824,72 @@ export default function ChainBuilder() {
                                 </div>
                               )}
 
-                              {/* Extracted variables */}
-                              {step.runStatus === 'success' && step.responseKeys?.length > 0 && (
-                                <div style={{ marginBottom: '0.75rem' }}>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.4rem' }}>
-                                    📦 Extracted Variables (use in next steps)
+                              {/* ── Captured Session & Authentication Data Card ── */}
+                              {step.runStatus === 'success' && step.capturedData && (
+                                <div style={{
+                                  marginBottom: '0.85rem',
+                                  padding: '0.65rem 0.85rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'rgba(16,185,129,0.08)',
+                                  border: '1px solid rgba(16,185,129,0.25)',
+                                }}>
+                                  <div style={{ fontSize: '0.78rem', color: 'var(--success)', fontWeight: 700, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    🔒 Captured Session & Authentication Data
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400 }}>(auto-stored for next steps)</span>
                                   </div>
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                                    {step.responseKeys.map((key, ki) => (
-                                      <span key={ki} className="response-key-chip">{'{{' + key + '}}'}</span>
-                                    ))}
-                                  </div>
+
+                                  {/* Captured Cookies */}
+                                  {step.capturedData.cookies && (
+                                    <div style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>
+                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>🍪 Cookie Header: </span>
+                                      <code style={{ color: 'var(--success)', background: 'var(--bg-base)', padding: '2px 6px', borderRadius: 4, fontSize: '0.72rem', wordBreak: 'break-all' }}>
+                                        {step.capturedData.cookies}
+                                      </code>
+                                      <span className="response-key-chip" style={{ marginLeft: '0.4rem', color: 'var(--success)', borderColor: 'rgba(16,185,129,0.4)' }}>
+                                        {'{{authCookie}}'}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Captured Auth / Bearer Token */}
+                                  {(step.capturedData.tokens?.authorization || step.capturedData.tokens?.token || step.capturedData.tokens?.access_token) && (
+                                    <div style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>
+                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>🔑 Bearer / Auth Token: </span>
+                                      <code style={{ color: 'var(--cyan)', background: 'var(--bg-base)', padding: '2px 6px', borderRadius: 4, fontSize: '0.72rem', wordBreak: 'break-all' }}>
+                                        {step.capturedData.tokens.authorization || `Bearer ${step.capturedData.tokens.token || step.capturedData.tokens.access_token}`}
+                                      </code>
+                                      <span className="response-key-chip" style={{ marginLeft: '0.4rem' }}>
+                                        {'{{access_token}}'}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Extracted Variables Grid */}
+                                  {step.capturedData.vars && Object.keys(step.capturedData.vars).length > 0 && (
+                                    <div style={{ marginTop: '0.5rem', paddingTop: '0.4rem', borderTop: '1px dashed rgba(16,185,129,0.2)' }}>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.3rem' }}>
+                                        📦 EXTRACTED DATA VALUES
+                                      </div>
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.35rem' }}>
+                                        {Object.entries(step.capturedData.vars).slice(0, 10).map(([k, v], vi) => (
+                                          <div key={vi} style={{ background: 'var(--bg-base)', padding: '3px 7px', borderRadius: 4, fontSize: '0.7rem', display: 'flex', gap: '0.35rem', overflow: 'hidden' }}>
+                                            <span style={{ color: 'var(--cyan)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{`{{${k}}}`}:</span>
+                                            <span style={{ color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{String(v)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Auto-injected headers notice for Step 2+ */}
+                              {idx > 0 && step.capturedData?.autoInjectedHeaders && (step.capturedData.autoInjectedHeaders.cookie || step.capturedData.autoInjectedHeaders.authorization) && (
+                                <div style={{ marginBottom: '0.65rem', padding: '0.4rem 0.75rem', borderRadius: 4, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', fontSize: '0.73rem', color: 'var(--accent-light)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  ⚡ <strong>Auto-Inherited Session:</strong>
+                                  {step.capturedData.autoInjectedHeaders.cookie && <span>Cookie Attached</span>}
+                                  {step.capturedData.autoInjectedHeaders.cookie && step.capturedData.autoInjectedHeaders.authorization && <span>•</span>}
+                                  {step.capturedData.autoInjectedHeaders.authorization && <span>Authorization: Bearer Token Attached</span>}
                                 </div>
                               )}
 

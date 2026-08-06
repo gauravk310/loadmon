@@ -305,6 +305,20 @@ router.post('/run-step', async (req, res) => {
       resolvedHeaders[resolveVars(k, context)] = resolveVars(v, context);
     }
 
+    // ── Auto-propagate session cookies and auth tokens if not explicitly set ──
+    const hasCookieHeader = Object.keys(resolvedHeaders).some(h => h.toLowerCase() === 'cookie');
+    if (!hasCookieHeader && context.authCookie) {
+      resolvedHeaders['Cookie'] = context.authCookie;
+    }
+
+    const hasAuthHeader = Object.keys(resolvedHeaders).some(h => h.toLowerCase() === 'authorization');
+    if (!hasAuthHeader) {
+      const authToken = context.authorization || (context.token ? `Bearer ${context.token}` : null) || (context.access_token ? `Bearer ${context.access_token}` : null) || (context.accessToken ? `Bearer ${context.accessToken}` : null);
+      if (authToken) {
+        resolvedHeaders['Authorization'] = authToken;
+      }
+    }
+
     // Resolve body
     let resolvedBody = null;
     if (['POST', 'PUT', 'PATCH'].includes(method) && step.body) {
@@ -326,6 +340,8 @@ router.post('/run-step', async (req, res) => {
       // Extract response keys for autocomplete
       const responseKeys = result.json ? flattenKeys(result.json) : [];
 
+      const capturedVarsMap = {};
+
       // Auto-capture: flatten the JSON into context so subsequent steps can reference keys
       if (result.json && typeof result.json === 'object') {
         const flat = {};
@@ -339,21 +355,71 @@ router.post('/run-step', async (req, res) => {
             const fullKey = prefix ? `${prefix}.${k}` : k;
             flat[fullKey] = v;
             flat[k] = v; // also store by short key for convenience
+            if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+              capturedVarsMap[fullKey] = v;
+            }
             if (typeof v === 'object' && v !== null) doFlatten(v, fullKey);
           }
         }
         doFlatten(result.json, '');
         Object.assign(context, flat);
+
+        // Auto-detect common auth tokens in response JSON
+        const tokenCandidate = result.json.access_token || result.json.accessToken || result.json.token || result.json.jwt || result.json.authToken || (result.json.user && (result.json.user.token || result.json.user.access_token));
+        if (tokenCandidate && typeof tokenCandidate === 'string') {
+          context['token'] = tokenCandidate;
+          context['access_token'] = tokenCandidate;
+          const formattedBearer = tokenCandidate.startsWith('Bearer ') ? tokenCandidate : `Bearer ${tokenCandidate}`;
+          context['authorization'] = formattedBearer;
+          context['bearerToken'] = formattedBearer;
+        }
       }
 
       // Also capture cookie header
-      const setCookie = result.headers && result.headers['set-cookie'];
+      const setCookie = result.headers && (result.headers['set-cookie'] || result.headers['Set-Cookie']);
+      let capturedCookieStr = null;
       if (setCookie) {
-        context['authCookie'] = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
+        capturedCookieStr = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
+        context['authCookie'] = capturedCookieStr;
+
+        // Parse individual cookies
+        const cookiesList = Array.isArray(setCookie) ? setCookie : [setCookie];
+        cookiesList.forEach(cStr => {
+          const firstPair = cStr.split(';')[0];
+          const eqIdx = firstPair.indexOf('=');
+          if (eqIdx !== -1) {
+            const cName = firstPair.substring(0, eqIdx).trim();
+            const cVal = firstPair.substring(eqIdx + 1).trim();
+            context[`cookie_${cName}`] = cVal;
+            if (cName === 'access_token' || cName === 'token' || cName === 'jwt') {
+              if (!context['token']) {
+                context['token'] = cVal;
+                context['access_token'] = cVal;
+                context['authorization'] = `Bearer ${cVal}`;
+              }
+            }
+          }
+        });
       }
 
       // Compute the origin that was sent so UI can display it for debugging
       const sentOrigin = result.headersSent?.Origin || result.headersSent?.origin || (appUrl ? appUrl.replace(/\/$/, '') : (serverUrl ? new URL(serverUrl).origin : '(None)'));
+
+      // Build structured capturedData object for UI display
+      const capturedData = {
+        cookies: capturedCookieStr || context.authCookie || null,
+        tokens: {
+          token: context.token || null,
+          access_token: context.access_token || null,
+          authorization: context.authorization || null,
+        },
+        vars: capturedVarsMap,
+        headers: result.headers || {},
+        autoInjectedHeaders: {
+          cookie: !hasCookieHeader && context.authCookie ? context.authCookie : null,
+          authorization: !hasAuthHeader && (context.authorization || context.token) ? (context.authorization || `Bearer ${context.token}`) : null,
+        }
+      };
 
       results.push({
         stepIndex: i,
@@ -365,7 +431,8 @@ router.post('/run-step', async (req, res) => {
         json: result.json,
         body: result.body,   // always include raw body so UI can show error responses too
         durationMs: result.durationMs,
-        responseKeys
+        responseKeys,
+        capturedData
       });
 
       // If this step failed, stop the chain (no point running subsequent steps)

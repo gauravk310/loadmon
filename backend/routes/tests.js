@@ -264,21 +264,46 @@ router.post('/start', (req, res) => {
   // Chain override: if a chain is provided, use its steps and environment URLs
   if (chain && typeof chain === 'object' && Array.isArray(chain.steps) && chain.steps.length > 0) {
     // Auto-generate capture rules from responseKeys stored during chain building
-    const chainSteps = chain.steps.map(step => {
+    const chainSteps = chain.steps.map((step, idx) => {
       const capture = [];
       // Auto-capture cookie
       capture.push({ header: 'set-cookie', as: 'authCookie' });
+      // Auto-capture common token fields if present
+      capture.push({ json: '$.access_token', as: 'access_token' });
+      capture.push({ json: '$.token', as: 'token' });
+      capture.push({ json: '$.jwt', as: 'jwt' });
+      capture.push({ json: '$.authorization', as: 'authorization' });
+      capture.push({ json: '$.user.token', as: 'user_token' });
+      capture.push({ json: '$.user.access_token', as: 'user_access_token' });
+
       // Auto-capture all discovered response keys
       if (Array.isArray(step.responseKeys)) {
         step.responseKeys.forEach(key => {
           // Convert dot-notation to JSONPath: user.id → $.user.id
           const jsonPath = '$.' + key.replace(/\[0\]/g, '[0]');
           const varName = key.replace(/[.\[\]]/g, '_').replace(/_+$/,'');
-          capture.push({ json: jsonPath, as: varName });
+          if (!capture.some(c => c.as === varName)) {
+            capture.push({ json: jsonPath, as: varName });
+          }
         });
       }
+
+      const headers = { ...(step.headers || {}) };
+      // Auto-inject Cookie & Authorization headers for subsequent steps if not explicitly set
+      if (idx > 0) {
+        const hasCookie = Object.keys(headers).some(h => h.toLowerCase() === 'cookie');
+        if (!hasCookie) {
+          headers['Cookie'] = '{{ authCookie }}';
+        }
+        const hasAuth = Object.keys(headers).some(h => h.toLowerCase() === 'authorization');
+        if (!hasAuth) {
+          headers['Authorization'] = 'Bearer {{ access_token }}';
+        }
+      }
+
       return {
         ...step,
+        headers,
         capture
       };
     });

@@ -5,7 +5,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Configure from './pages/Configure.jsx'
 import DataManager from './pages/DataManager.jsx'
 import Reports from './pages/Reports.jsx'
-import ChainBuilder from './pages/ChainBuilder.jsx'
+import ChainTesting from './pages/ChainTesting.jsx'
 
 export default function App() {
   return (
@@ -18,7 +18,8 @@ export default function App() {
             <Routes>
               <Route path="/"             element={<Dashboard />} />
               <Route path="/configure"    element={<Configure />} />
-              <Route path="/chain-builder" element={<ChainBuilder />} />
+              <Route path="/chain-testing" element={<ChainTesting />} />
+              <Route path="/chain-builder" element={<Navigate to="/chain-testing" replace />} />
               <Route path="/data"         element={<DataManager />} />
               <Route path="/reports"      element={<Reports />} />
               <Route path="*"             element={<Navigate to="/" replace />} />

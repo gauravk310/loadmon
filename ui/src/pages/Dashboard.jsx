@@ -93,16 +93,12 @@ function extractPath(urlStr) {
 export default function Dashboard() {
   const {
     testStatus, liveMetrics, logs, stepLogs, setStepLogs,
-    startTest, stopTest, config, API,
-    chains, selectedChainId, setSelectedChainId
+    startTest, stopTest, config, API
   } = useApp()
 
   const [selectedPreset, setSelectedPreset] = useState('default')
   const [starting, setStopping] = useState(false)
   const [error, setError] = useState(null)
-  // Custom phase overrides when chain is selected
-  const [chainDuration, setChainDuration] = useState(10)
-  const [chainArrivalRate, setChainArrivalRate] = useState(2)
 
   const logRef = useRef(null)
 
@@ -200,25 +196,15 @@ export default function Dashboard() {
     return entries.slice(-300)
   }, [logs])
 
-  // ── Selected chain object ─────────────────────────────────
-  const selectedChain = useMemo(() => {
-    if (!selectedChainId) return null
-    return chains.find(c => c.id === selectedChainId) || null
-  }, [chains, selectedChainId])
-
   // ── Active Phases ──────────────────────────────────────────
   const activePhases = useMemo(() => {
-    if (selectedChainId) {
-      // Chain mode: use custom duration/arrivalRate
-      return [{ duration: chainDuration, arrivalRate: chainArrivalRate, name: 'Chain Load Test' }]
-    }
     if (selectedPreset === 'default') {
       return config?.phases && config.phases.length > 0
         ? config.phases
         : [{ duration: 30, arrivalRate: 5, name: 'Default Test' }]
     }
     return PRESET_PHASES[selectedPreset] || [{ duration: 30, arrivalRate: 5, name: 'Default Test' }]
-  }, [selectedPreset, config?.phases, selectedChainId, chainDuration, chainArrivalRate])
+  }, [selectedPreset, config?.phases])
 
   // ── Handlers ──────────────────────────────────────────────
   const handleStart = async () => {
@@ -227,7 +213,7 @@ export default function Dashboard() {
     const result = await startTest({
       environment: 'custom',
       phases: activePhases,
-      chain: selectedChain || null
+      chain: null
     })
     setStopping(false)
     if (!result.success) setError(result.error)
@@ -239,79 +225,30 @@ export default function Dashboard() {
     setStopping(false)
   }
 
-  const isChainMode = !!selectedChainId
-
   return (
     <div className="page-wrapper animate-fade-in">
       {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Real-time load test monitoring &amp; control</p>
+          <p className="page-subtitle">Real-time single request load test monitoring &amp; control</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {!testStatus.running && (
-            <>
-              {/* Chain selector */}
-              <div className="flex items-center gap-1.5" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.2rem 0.5rem', background: 'var(--bg-overlay)' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>🔗 Chain:</span>
-                <select
-                  id="chain-select"
-                  className="form-select"
-                  style={{ width: 'auto', minWidth: 160, border: 'none', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
-                  value={selectedChainId || ''}
-                  onChange={e => setSelectedChainId(e.target.value || null)}
-                >
-                  <option value="" style={{ background: '#161b27', color: '#f1f5f9' }}>None ({config?.scenarioName || 'Single Endpoint'})</option>
-                  {chains.map(c => (
-                    <option key={c.id} value={c.id} style={{ background: '#161b27', color: '#f1f5f9' }}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Phase preset or chain config */}
-              {!isChainMode ? (
-                <select
-                  id="preset-select"
-                  value={selectedPreset}
-                  onChange={e => setSelectedPreset(e.target.value)}
-                  className="form-select"
-                  style={{ width: 'auto', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
-                >
-                  <option value="default" style={{ background: '#161b27', color: '#f1f5f9' }}>⚙️ Default Config</option>
-                  <option value="quick" style={{ background: '#161b27', color: '#f1f5f9' }}>⚡ Quick (30s)</option>
-                  <option value="moderate" style={{ background: '#161b27', color: '#f1f5f9' }}>🚀 Moderate (2m)</option>
-                  <option value="heavy" style={{ background: '#161b27', color: '#f1f5f9' }}>🔥 Heavy (~2k VUs)</option>
-                  <option value="stress" style={{ background: '#161b27', color: '#f1f5f9' }}>💀 Stress (3k+ VUs)</option>
-                </select>
-              ) : (
-                <div className="flex items-center gap-1" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.5rem', background: 'var(--bg-overlay)' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>⏱</span>
-                  <input
-                    type="number"
-                    className="form-input"
-                    style={{ width: 60, padding: '0.2rem 0.4rem', fontSize: '0.82rem' }}
-                    value={chainDuration}
-                    onChange={e => setChainDuration(Number(e.target.value))}
-                    min={5}
-                    title="Duration (seconds)"
-                  />
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>s</span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 4px' }}>·</span>
-                  <input
-                    type="number"
-                    className="form-input"
-                    style={{ width: 60, padding: '0.2rem 0.4rem', fontSize: '0.82rem' }}
-                    value={chainArrivalRate}
-                    onChange={e => setChainArrivalRate(Number(e.target.value))}
-                    min={1}
-                    title="Arrival Rate per second"
-                  />
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>/s</span>
-                </div>
-              )}
-            </>
+            <select
+              id="preset-select"
+              value={selectedPreset}
+              onChange={e => setSelectedPreset(e.target.value)}
+              className="form-select"
+              style={{ width: 'auto', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+            >
+              <option value="default" style={{ background: '#161b27', color: '#f1f5f9' }}>⚙️ Default Config</option>
+              <option value="quick" style={{ background: '#161b27', color: '#f1f5f9' }}>⚡ Quick (30s)</option>
+              <option value="moderate" style={{ background: '#161b27', color: '#f1f5f9' }}>🚀 Moderate (2m)</option>
+              <option value="heavy" style={{ background: '#161b27', color: '#f1f5f9' }}>🔥 Heavy (~2k VUs)</option>
+              <option value="stress" style={{ background: '#161b27', color: '#f1f5f9' }}>💀 Stress (3k+ VUs)</option>
+            </select>
           )}
 
           {testStatus.running ? (
@@ -321,50 +258,18 @@ export default function Dashboard() {
           ) : (
             <button
               id="btn-start"
-              className={`btn btn-lg ${isChainMode ? 'btn-accent' : 'btn-success'}`}
+              className="btn btn-lg btn-success"
               onClick={handleStart}
               disabled={starting}
             >
-              {starting ? '⏳ Starting…' : isChainMode ? `🔗 Start Chain Test` : '▶ Start Test'}
+              {starting ? '⏳ Starting…' : '▶ Start Single Request Test'}
             </button>
           )}
         </div>
       </div>
 
-      {/* Chain banner when chain is selected */}
-      {isChainMode && selectedChain && !testStatus.running && (
-        <div className="card card-p mb-2" style={{ borderColor: 'var(--accent)', background: 'rgba(99,102,241,0.07)', padding: '0.75rem 1.25rem' }}>
-          <div className="flex items-center gap-3">
-            <span style={{ fontSize: '1.2rem' }}>🔗</span>
-            <div>
-              <div style={{ fontWeight: 700, color: 'var(--accent-light)', fontSize: '0.9rem' }}>
-                Chain: {selectedChain.name}
-              </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                {selectedChain.steps?.length} steps · {chainArrivalRate} users/s for {chainDuration}s
-                · Target: <code style={{ color: 'var(--cyan)', fontSize: '0.76rem' }}>{selectedChain.serverUrl}</code>
-              </div>
-            </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
-              {(selectedChain.steps || []).map((s, i) => (
-                <span key={i} style={{
-                  background: 'var(--bg-overlay)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '2px 8px',
-                  fontSize: '0.72rem',
-                  color: 'var(--text-secondary)'
-                }}>
-                  {i + 1}. {s.method} {s.endpoint.substring(0, 25)}{s.endpoint.length > 25 ? '…' : ''}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Single Request banner when no chain is selected */}
-      {!isChainMode && !testStatus.running && (
+      {/* Single Request Target banner */}
+      {!testStatus.running && (
         <div className="card card-p mb-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-overlay)', padding: '0.6rem 1.25rem' }}>
           <div className="flex items-center gap-3">
             <span style={{ fontSize: '1.1rem' }}>🎯</span>
@@ -379,7 +284,7 @@ export default function Dashboard() {
                 {config?.targetEndpoint || '/api/auth/signin'}
               </code>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '0.5rem' }}>
-                (Configured in Configure page · Runs for all VUsers when no chain is selected)
+                (Configured in Configure page · Default Single Request Configuration)
               </span>
             </div>
           </div>
@@ -403,13 +308,7 @@ export default function Dashboard() {
         </span>
         {config && (
           <span className="text-sm text-muted" style={{ marginLeft: 'auto' }}>
-            {isChainMode && selectedChain ? (
-              <span>Chain: <code className="mono" style={{ color: 'var(--accent-light)', fontSize: '0.8rem' }}>{selectedChain.name}</code> ({selectedChain.steps?.length} steps)</span>
-            ) : config.steps && config.steps.length > 0 ? (
-              <span>Scenario: <code className="mono" style={{ color: 'var(--cyan)', fontSize: '0.8rem' }}>{config.scenarioName || 'Chain Load Test'}</code> ({config.steps.length} {config.steps.length === 1 ? 'step' : 'steps'})</span>
-            ) : (
-              <span>Target: <code className="mono" style={{ color: 'var(--accent-light)', fontSize: '0.8rem' }}>{config.serverUrl}{config.targetEndpoint}</code></span>
-            )}
+            Target: <code className="mono" style={{ color: 'var(--accent-light)', fontSize: '0.8rem' }}>{config.serverUrl}{config.targetEndpoint}</code>
           </span>
         )}
       </div>
@@ -459,7 +358,7 @@ export default function Dashboard() {
       {!testStatus.running && (
         <div className="card card-p mb-3">
           <div className="section-title mb-2">
-            Selected Phase Plan — {isChainMode ? `Chain: ${selectedChain?.name || ''}` : (selectedPreset === 'default' ? 'Default Config' : selectedPreset)}
+            Selected Phase Plan — {selectedPreset === 'default' ? 'Default Config' : selectedPreset}
           </div>
           <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
             {activePhases.map((p, i) => (
@@ -474,8 +373,8 @@ export default function Dashboard() {
         <LiveProgressTicker
           stepLogs={stepLogs}
           testStatus={testStatus}
-          isChainMode={isChainMode}
-          selectedChain={selectedChain}
+          isChainMode={false}
+          selectedChain={null}
         />
       </div>
 
@@ -526,7 +425,7 @@ export default function Dashboard() {
           setStepLogs={setStepLogs}
           testStatus={testStatus}
           API={API}
-          selectedChain={selectedChain}
+          selectedChain={null}
         />
       </div>
     </div>

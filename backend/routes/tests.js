@@ -130,6 +130,7 @@ function buildYaml(config, phases, environment) {
     phases.forEach(p => {
       phasesYaml += `\n        - duration: ${p.duration}\n          arrivalRate: ${p.arrivalRate}`;
       if (p.rampTo) phasesYaml += `\n          rampTo: ${p.rampTo}`;
+      if (p.maxVusers) phasesYaml += `\n          maxVusers: ${p.maxVusers}`;
       if (p.name) phasesYaml += `\n          name: "${p.name}"`;
     });
   } else {

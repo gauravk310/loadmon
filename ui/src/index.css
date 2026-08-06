@@ -1194,3 +1194,38 @@ tbody tr:last-child td { border-bottom: none; }
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Node Visualizer & Arrow Animations ──────────────────── */
+.chain-node-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.85rem;
+  min-width: 140px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.chain-node-box.active-executing {
+  border-color: var(--accent-light);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4), inset 0 0 10px rgba(99, 102, 241, 0.15);
+  animation: nodeGlowPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes nodeGlowPulse {
+  0% { box-shadow: 0 0 6px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 18px rgba(99, 102, 241, 0.8); }
+  100% { box-shadow: 0 0 6px rgba(99, 102, 241, 0.3); }
+}
+
+.connecting-arrow-line {
+  stroke-dasharray: 5, 4;
+  animation: dashMove 0.8s linear infinite;
+}
+
+@keyframes dashMove {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+

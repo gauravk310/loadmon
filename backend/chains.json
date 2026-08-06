@@ -1,1 +1,46 @@
-[]
+[
+  {
+    "id": "chain_grademeai_student_flow",
+    "name": "GradeMe AI Student Flow",
+    "appId": "app_default",
+    "serverUrl": "https://grademeai-qabe.onrender.com",
+    "appUrl": "https://grademeai-qafe.onrender.com",
+    "steps": [
+      {
+        "id": "step_1_login",
+        "name": "Student Login",
+        "method": "POST",
+        "endpoint": "/api/auth/signin",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{\n  \"email\": \"{{ email }}\",\n  \"password\": \"{{ password }}\"\n}",
+        "think": 1,
+        "responseKeys": [
+          "authCookie",
+          "access_token",
+          "token",
+          "user.id",
+          "user._id",
+          "id",
+          "studentId"
+        ]
+      },
+      {
+        "id": "step_2_enrollments",
+        "name": "Get Enrollments",
+        "method": "GET",
+        "endpoint": "/api/enrollment/get-all/student/{{ id }}",
+        "headers": {},
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "classId",
+          "enrollmentId"
+        ]
+      }
+    ],
+    "createdAt": "2026-08-06T00:00:00.000Z",
+    "updatedAt": "2026-08-06T00:00:00.000Z"
+  }
+]

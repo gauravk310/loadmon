@@ -4,7 +4,7 @@ import './Sidebar.css'
 
 const NAV_ITEMS = [
   { to: '/',             icon: '⚡', label: 'Dashboard'     },
-  { to: '/chain-builder', icon: '🔗', label: 'Chain Builder' },
+  { to: '/chain-testing', icon: '🔗', label: 'Chain Testing' },
   { to: '/configure',    icon: '⚙️', label: 'Configure'     },
   { to: '/data',         icon: '📂', label: 'Data Manager'  },
   { to: '/reports',      icon: '📊', label: 'Reports'       },

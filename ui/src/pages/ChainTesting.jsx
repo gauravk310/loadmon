@@ -41,6 +41,11 @@ function newStep(index) {
   }
 }
 
+function cleanVarKey(key) {
+  if (typeof key !== 'string') return key
+  return key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '')
+}
+
 // ── Variable Autocomplete Dropdown ─────────────────────────
 function VarDropdown({ suggestions, onSelect, onClose }) {
   useEffect(() => {
@@ -66,7 +71,8 @@ function VarDropdown({ suggestions, onSelect, onClose }) {
         items: []
       })
     }
-    groupsMap.get(rawLabel).items.push(s)
+    const cleanItemKey = cleanVarKey(s.key)
+    groupsMap.get(rawLabel).items.push({ ...s, key: cleanItemKey })
   })
 
   const groupList = Array.from(groupsMap.values()).sort((a, b) => a.stepNum - b.stepNum)
@@ -94,10 +100,10 @@ function VarDropdown({ suggestions, onSelect, onClose }) {
             <div
               key={`${gIdx}-${i}`}
               className="var-dropdown-item"
-              onMouseDown={() => { onSelect(s.key); onClose() }}
+              onMouseDown={() => { onSelect(cleanVarKey(s.key)); onClose() }}
             >
               <span className="var-key" style={{ color: s.isAuth ? 'var(--success)' : 'var(--cyan)' }}>
-                {`{{${s.key}}}`}
+                {`{{${cleanVarKey(s.key)}}}`}
               </span>
               <span className="var-source">← {g.label}</span>
             </div>

@@ -142,8 +142,19 @@ function beforeStep(requestParams, context, ee, next) {
         if (tokenVal !== undefined && tokenVal !== '') return tokenVal;
       }
 
-      // 6. Nested object resolution
-      const parts = key.split('.');
+      // 6. Strip array bracket prefix (e.g. [0].classId -> classId)
+      const strippedKey = key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '');
+      if (context.vars && context.vars[strippedKey] !== undefined && context.vars[strippedKey] !== '') {
+        return context.vars[strippedKey];
+      }
+      const lastSeg = strippedKey.split('.').pop();
+      if (lastSeg && context.vars && context.vars[lastSeg] !== undefined && context.vars[lastSeg] !== '') {
+        return context.vars[lastSeg];
+      }
+
+      // 7. Nested object resolution
+      const cleanPath = key.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '');
+      const parts = cleanPath.split('.');
       let val = context.vars;
       for (const p of parts) {
         if (val && typeof val === 'object') val = val[p];

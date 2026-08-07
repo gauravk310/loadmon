@@ -34,42 +34,63 @@ function saveChains(chains) {
 
 // ── Helper: flatten JSON object keys (dot notation) ────────
 function flattenKeys(obj, prefix = '') {
-  const keys = [];
-  if (typeof obj !== 'object' || obj === null) return keys;
-  if (Array.isArray(obj)) {
-    if (obj.length > 0 && typeof obj[0] === 'object' && obj[0] !== null) {
-      // Flatten first element keys with [0] notation
-      const childKeys = flattenKeys(obj[0], prefix ? `${prefix}[0]` : '[0]');
-      keys.push(...childKeys);
+  const keys = new Set();
+  if (typeof obj !== 'object' || obj === null) return Array.from(keys);
+
+  function recurse(o, p = '') {
+    if (typeof o !== 'object' || o === null) return;
+    if (Array.isArray(o)) {
+      if (o.length > 0 && typeof o[0] === 'object' && o[0] !== null) {
+        recurse(o[0], p);
+      }
+      return;
     }
-    return keys;
-  }
-  for (const [k, v] of Object.entries(obj)) {
-    const fullKey = prefix ? `${prefix}.${k}` : k;
-    keys.push(fullKey);
-    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-      keys.push(...flattenKeys(v, fullKey));
-    } else if (Array.isArray(v) && v.length > 0 && typeof v[0] === 'object') {
-      keys.push(...flattenKeys(v[0], `${fullKey}[0]`));
+    for (const [k, v] of Object.entries(o)) {
+      const fullKey = p ? `${p}.${k}` : k;
+      keys.add(fullKey);
+      keys.add(k);
+      if (typeof v === 'object' && v !== null) {
+        recurse(v, fullKey);
+      }
     }
   }
-  return keys;
+
+  recurse(obj, prefix);
+  return Array.from(keys);
 }
 
 // ── Helper: resolve {{varName}} in a string ────────────────
 function resolveVars(str, context) {
-  if (typeof str !== 'string') return str;
+  if (typeof str !== 'string' || !str) return str;
+  if (!context || typeof context !== 'object') return str;
+
   return str.replace(/\{\{\s*([\w.\[\]]+)\s*\}\}/g, (match, key) => {
-    // Support dot-notation: user.id → context['user.id'] or context.user?.id
-    if (context[key] !== undefined) return context[key];
-    // Try nested resolution
-    const parts = key.split('.');
+    // 1. Direct match
+    if (context[key] !== undefined && context[key] !== null) return context[key];
+    
+    // 2. Strip array brackets prefix: [0].classId -> classId or [0]
+    const strippedKey = key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '');
+    if (context[strippedKey] !== undefined && context[strippedKey] !== null) {
+      return context[strippedKey];
+    }
+
+    // 3. Last segment fallback: e.g. "class.classId" or "[0].classId" -> "classId"
+    const lastSeg = strippedKey.split('.').pop();
+    if (lastSeg && context[lastSeg] !== undefined && context[lastSeg] !== null) {
+      return context[lastSeg];
+    }
+
+    // 4. Dot notation nested resolution
+    const cleanPath = key.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '');
+    const parts = cleanPath.split('.');
     let val = context;
     for (const p of parts) {
       if (val && typeof val === 'object') val = val[p];
       else { val = undefined; break; }
     }
-    return val !== undefined ? val : match;
+    if (val !== undefined && val !== null) return val;
+
+    return match;
   });
 }
 
@@ -355,14 +376,39 @@ router.post('/run-step', async (req, res) => {
             const fullKey = prefix ? `${prefix}.${k}` : k;
             flat[fullKey] = v;
             flat[k] = v; // also store by short key for convenience
+            flat[`[0].${fullKey}`] = v;
+            flat[`[0].${k}`] = v;
             if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
               capturedVarsMap[fullKey] = v;
+              capturedVarsMap[k] = v;
             }
             if (typeof v === 'object' && v !== null) doFlatten(v, fullKey);
           }
         }
         doFlatten(result.json, '');
         Object.assign(context, flat);
+
+        const sampleItem = Array.isArray(result.json) && result.json.length > 0 ? result.json[0] : result.json;
+        if (sampleItem && typeof sampleItem === 'object') {
+          const sampleId = sampleItem._id || sampleItem.id;
+          if (sampleId) {
+            context['_id'] = sampleId;
+            capturedVarsMap['_id'] = sampleId;
+
+            if (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined || /test/i.test(step.name || '')) {
+              context['testId'] = sampleId;
+              context['test_id'] = sampleId;
+              capturedVarsMap['testId'] = sampleId;
+              capturedVarsMap['test_id'] = sampleId;
+            }
+            if (sampleItem.className !== undefined || sampleItem.instructorId !== undefined || /class|enroll/i.test(step.name || '')) {
+              context['classId'] = sampleId;
+              context['class_id'] = sampleId;
+              capturedVarsMap['classId'] = sampleId;
+              capturedVarsMap['class_id'] = sampleId;
+            }
+          }
+        }
 
         // Auto-detect common auth tokens in response JSON
         const tokenCandidate = result.json.access_token || result.json.accessToken || result.json.token || result.json.jwt || result.json.authToken || (result.json.user && (result.json.user.token || result.json.user.access_token));
@@ -604,6 +650,8 @@ router.post('/run-data-driven', async (req, res) => {
                 const fullKey = prefix ? `${prefix}.${k}` : k;
                 flat[fullKey] = v;
                 flat[k] = v;
+                flat[`[0].${fullKey}`] = v;
+                flat[`[0].${k}`] = v;
                 if (typeof v === 'object' && v !== null) doFlatten(v, fullKey);
               }
             }

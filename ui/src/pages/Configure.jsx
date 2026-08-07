@@ -48,9 +48,19 @@ export default function Configure() {
   const [newHostname, setNewHostname]       = useState('')
   const [addError, setAddError]             = useState(null)
 
+function cleanVarKey(key) {
+  if (typeof key !== 'string') return key
+  return key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '')
+}
+
   const stepSavedGroups = useMemo(() => {
     const raw = baseRunResult?.baseStepSavedKeys || baseStatus?.baseStepSavedKeys || config?.baseStepSavedKeys
-    return Array.isArray(raw) ? raw : []
+    if (!Array.isArray(raw)) return []
+    return raw.map(grp => {
+      if (!grp || typeof grp !== 'object') return grp
+      const cleanKeys = Array.from(new Set((grp.keys || []).map(cleanVarKey).filter(Boolean)))
+      return { ...grp, keys: cleanKeys }
+    })
   }, [baseRunResult?.baseStepSavedKeys, baseStatus?.baseStepSavedKeys, config?.baseStepSavedKeys])
 
   const stepResponses = useMemo(() => {
@@ -60,17 +70,18 @@ export default function Configure() {
 
   const allVarSuggestions = useMemo(() => {
     const defaultKeys = [
-      'email', 'password', 'token', 'access_token', 'authorization',
-      'authCookie', 'id', 'user.id', 'user_id', 'userId', 'studentId', 'classId', 'testId'
+      '_id', 'id', 'email', 'password', 'token', 'access_token', 'authorization',
+      'authCookie', 'user.id', 'user_id', 'userId', 'studentId', 'classId', 'testId'
     ]
-    const serverKeys = Array.isArray(baseStatus?.baseSavedKeys)
+    const serverKeys = (Array.isArray(baseStatus?.baseSavedKeys)
       ? baseStatus.baseSavedKeys
       : Array.isArray(config?.baseSavedKeys)
         ? config.baseSavedKeys
-        : []
-    
-    // Map key -> step info
-    const keyToStepMap = new Map()
+        : []).map(cleanVarKey)
+
+    const suggestions = []
+    const seenStepKeyCombo = new Set()
+
     if (Array.isArray(stepSavedGroups) && stepSavedGroups.length > 0) {
       stepSavedGroups.forEach((grp, idx) => {
         if (!grp || typeof grp !== 'object') return
@@ -80,38 +91,39 @@ export default function Configure() {
         const keysArr = Array.isArray(grp.keys) ? grp.keys : []
         keysArr.forEach(k => {
           if (k) {
-            const kStr = String(k)
-            if (!keyToStepMap.has(kStr)) {
-              keyToStepMap.set(kStr, { stepNum: sNum, stepName: sName, stepLabel: sLabel })
+            const kStr = cleanVarKey(String(k))
+            const combo = `${sNum}:${kStr}`
+            if (!seenStepKeyCombo.has(combo)) {
+              seenStepKeyCombo.add(combo)
+              suggestions.push({
+                key: kStr,
+                isAuth: /token|cookie|auth/i.test(kStr),
+                stepNum: sNum,
+                stepName: sName,
+                stepLabel: sLabel
+              })
             }
           }
         })
       })
     }
 
-    const combined = Array.from(new Set([...defaultKeys, ...serverKeys]))
-    return combined.map(k => {
-      const kStr = String(k)
-      const stepInfo = keyToStepMap.get(kStr)
-      const isAuth = /token|cookie|auth/i.test(kStr)
-      if (stepInfo) {
-        return {
+    const allKnownKeys = Array.from(new Set([...defaultKeys, ...serverKeys].map(cleanVarKey)))
+    allKnownKeys.forEach(kStr => {
+      if (!kStr) return
+      const hasKeyInSteps = suggestions.some(s => s.key === kStr)
+      if (!hasKeyInSteps) {
+        suggestions.push({
           key: kStr,
-          isAuth,
-          stepNum: stepInfo.stepNum,
-          stepName: stepInfo.stepName,
-          stepLabel: stepInfo.stepLabel
-        }
-      } else {
-        return {
-          key: kStr,
-          isAuth,
+          isAuth: /token|cookie|auth/i.test(kStr),
           stepNum: 0,
           stepName: 'User Credential / Variable',
           stepLabel: 'User Credential / Variable'
-        }
+        })
       }
     })
+
+    return suggestions
   }, [stepSavedGroups, baseStatus?.baseSavedKeys, config?.baseSavedKeys])
 
   // Seed form when config loads

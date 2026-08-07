@@ -29,10 +29,31 @@ router.post('/', (req, res) => {
   }
 });
 
+// ── Helper to clean variable keys (strip [0]. prefixes) ────────
+function cleanVarKey(key) {
+  if (typeof key !== 'string') return key;
+  return key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '');
+}
+
+function cleanVarKeysList(keysArr) {
+  if (!Array.isArray(keysArr)) return [];
+  const cleanedSet = new Set();
+  keysArr.forEach(k => {
+    if (k && typeof k === 'string') {
+      const clean = cleanVarKey(k);
+      if (clean) cleanedSet.add(clean);
+    }
+  });
+  return Array.from(cleanedSet);
+}
+
 // ── Helper to fallback baseStepSavedKeys if missing in config ──
 function getFallbackStepSavedKeys(config) {
   if (config && Array.isArray(config.baseStepSavedKeys) && config.baseStepSavedKeys.length > 0) {
-    return config.baseStepSavedKeys;
+    return config.baseStepSavedKeys.map(s => ({
+      ...s,
+      keys: cleanVarKeysList(s.keys)
+    }));
   }
   if (config && Array.isArray(config.baseSavedKeys) && config.baseSavedKeys.length > 0) {
     const steps = config.baseSteps || [];
@@ -42,7 +63,7 @@ function getFallbackStepSavedKeys(config) {
         stepIndex: 1,
         stepId: firstStep.id || 'step_1',
         stepName: firstStep.name || 'Step 1',
-        keys: config.baseSavedKeys
+        keys: cleanVarKeysList(config.baseSavedKeys)
       }
     ];
   }
@@ -68,7 +89,7 @@ router.get('/base-status', (req, res) => {
       useBaseConfig: !!config.useBaseConfig,
       baseNumUsers: config.baseNumUsers || 10,
       baseStepsCount: config.baseSteps ? config.baseSteps.length : 0,
-      baseSavedKeys: config.baseSavedKeys || sampleKeys,
+      baseSavedKeys: cleanVarKeysList(config.baseSavedKeys || sampleKeys),
       baseStepSavedKeys: getFallbackStepSavedKeys(config),
       baseStepResponses: config.baseStepResponses || [],
       preparedCount,
@@ -177,8 +198,11 @@ router.post('/run-base-chain', async (req, res) => {
           if (result.json && typeof result.json === 'object') {
             const keys = flattenKeys(result.json);
             keys.forEach(k => {
-              allCapturedKeys.add(k);
-              stepKeySets[sIdx].add(k);
+              const cleanK = cleanVarKey(k);
+              if (cleanK) {
+                allCapturedKeys.add(cleanK);
+                stepKeySets[sIdx].add(cleanK);
+              }
             });
 
             function doFlatten(obj, prefix) {
@@ -189,16 +213,55 @@ router.post('/run-base-chain', async (req, res) => {
               }
               for (const [k, v] of Object.entries(obj)) {
                 const fullKey = prefix ? `${prefix}.${k}` : k;
-                userContext[fullKey] = v;
-                userContext[k] = v;
-                allCapturedKeys.add(fullKey);
-                allCapturedKeys.add(k);
-                stepKeySets[sIdx].add(fullKey);
-                stepKeySets[sIdx].add(k);
-                if (typeof v === 'object' && v !== null) doFlatten(v, fullKey);
+                const cleanFull = cleanVarKey(fullKey);
+                const cleanShort = cleanVarKey(k);
+
+                userContext[cleanFull] = v;
+                userContext[cleanShort] = v;
+                userContext[`[0].${cleanFull}`] = v;
+                userContext[`[0].${cleanShort}`] = v;
+
+                if (cleanFull) {
+                  allCapturedKeys.add(cleanFull);
+                  stepKeySets[sIdx].add(cleanFull);
+                }
+                if (cleanShort) {
+                  allCapturedKeys.add(cleanShort);
+                  stepKeySets[sIdx].add(cleanShort);
+                }
+
+                if (typeof v === 'object' && v !== null) doFlatten(v, cleanFull);
               }
             }
             doFlatten(result.json, '');
+
+            // Auto-detect IDs (_id, testId, classId)
+            const sampleItem = Array.isArray(result.json) && result.json.length > 0 ? result.json[0] : result.json;
+            if (sampleItem && typeof sampleItem === 'object') {
+              const sampleId = sampleItem._id || sampleItem.id;
+              if (sampleId) {
+                userContext['_id'] = sampleId;
+                allCapturedKeys.add('_id');
+                stepKeySets[sIdx].add('_id');
+
+                if (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined || /test/i.test(step.name || '')) {
+                  userContext['testId'] = sampleId;
+                  userContext['test_id'] = sampleId;
+                  allCapturedKeys.add('testId');
+                  allCapturedKeys.add('test_id');
+                  stepKeySets[sIdx].add('testId');
+                  stepKeySets[sIdx].add('test_id');
+                }
+                if (sampleItem.className !== undefined || sampleItem.instructorId !== undefined || /class|enroll/i.test(step.name || '')) {
+                  userContext['classId'] = sampleId;
+                  userContext['class_id'] = sampleId;
+                  allCapturedKeys.add('classId');
+                  allCapturedKeys.add('class_id');
+                  stepKeySets[sIdx].add('classId');
+                  stepKeySets[sIdx].add('class_id');
+                }
+              }
+            }
 
             const tokenCandidate = result.json.access_token || result.json.accessToken || result.json.token || result.json.jwt || result.json.authToken || (result.json.user && (result.json.user.token || result.json.user.access_token));
             if (tokenCandidate && typeof tokenCandidate === 'string') {
@@ -286,12 +349,12 @@ router.post('/run-base-chain', async (req, res) => {
     const baseSessionsPath = path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
     fs.writeFileSync(baseSessionsPath, JSON.stringify(baseUserSessions, null, 2));
 
-    const savedKeysList = Array.from(allCapturedKeys);
+    const savedKeysList = cleanVarKeysList(Array.from(allCapturedKeys));
     const baseStepSavedKeys = baseSteps.map((step, idx) => ({
       stepIndex: idx + 1,
       stepId: step.id || `step_${idx + 1}`,
       stepName: step.name || `Step ${idx + 1}`,
-      keys: Array.from(stepKeySets[idx] || [])
+      keys: cleanVarKeysList(Array.from(stepKeySets[idx] || []))
     }));
 
     // Update config.json

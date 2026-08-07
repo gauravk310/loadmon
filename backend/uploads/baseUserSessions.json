@@ -17,86 +17,571 @@
     "user.lastName": "0001",
     "lastName": "0001",
     "user.email": "student0001@loadtesting.com",
-    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MDg4ODE0LCJleHAiOjE3ODYxMTA0MTR9.yd8EeFmvcauFuYV8RDzI3P36OdrIU2SDq4g9rWENgCY; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:54 GMT; HttpOnly; Secure; SameSite=None"
-  },
-  {
-    "email": "student0002@loadtesting.com",
-    "password": "GradeMeAI",
-    "success": true,
-    "message": "Logged in successfully",
-    "user": {
-      "id": "6a7226d7b003b9c339ea7ad3",
-      "firstName": "Student",
-      "lastName": "0002",
-      "email": "student0002@loadtesting.com"
+    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MDk0OTkyLCJleHAiOjE3ODYxMTY1OTJ9.G6g71gX4LG8ZG_6HoULvZ8i2CMXje7AE5J7n5goGakE; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 15:29:52 GMT; HttpOnly; Secure; SameSite=None",
+    "_id": "6a7435f750af413da71ffaf7",
+    "classId": "6a74356950af413da71ff222",
+    "studentId": "6a7226d7b003b9c339ea7ad2",
+    "class": {
+      "instructorId": "6a468c40ee3e74950fd07881",
+      "name": "Physics",
+      "courseId": null,
+      "periodId": null,
+      "code": "18624",
+      "level": "Grade 10",
+      "isPracticeZone": false
     },
-    "user.id": "6a7226d7b003b9c339ea7ad3",
-    "id": "6a7226d7b003b9c339ea7ad3",
-    "user.firstName": "Student",
-    "firstName": "Student",
-    "user.lastName": "0002",
-    "lastName": "0002",
-    "user.email": "student0002@loadtesting.com",
-    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMyIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAyIiwiaWF0IjoxNzg2MDg4ODE0LCJleHAiOjE3ODYxMTA0MTR9.hr22-AzS1l8RQr7UfdA76FBZ6O747jgWgYk8bE6_LuA; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:54 GMT; HttpOnly; Secure; SameSite=None"
-  },
-  {
-    "email": "student0003@loadtesting.com",
-    "password": "GradeMeAI",
-    "success": true,
-    "message": "Logged in successfully",
-    "user": {
-      "id": "6a7226d7b003b9c339ea7ad4",
-      "firstName": "Student",
-      "lastName": "0003",
-      "email": "student0003@loadtesting.com"
+    "class.instructorId": "6a468c40ee3e74950fd07881",
+    "instructorId": "6a468c40ee3e74950fd07881",
+    "class.name": "Physics",
+    "name": null,
+    "class.courseId": null,
+    "courseId": null,
+    "class.periodId": null,
+    "periodId": null,
+    "class.code": "18624",
+    "code": null,
+    "class.level": "Grade 10",
+    "level": "Grade 10",
+    "class.isPracticeZone": false,
+    "isPracticeZone": false,
+    "pendingTestIds": [
+      "6a7435f750af413da71ffaf7"
+    ],
+    "currentStudents": 0,
+    "course": {
+      "name": null,
+      "code": null,
+      "grade": null
     },
-    "user.id": "6a7226d7b003b9c339ea7ad4",
-    "id": "6a7226d7b003b9c339ea7ad4",
-    "user.firstName": "Student",
-    "firstName": "Student",
-    "user.lastName": "0003",
-    "lastName": "0003",
-    "user.email": "student0003@loadtesting.com",
-    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkNCIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAzIiwiaWF0IjoxNzg2MDg4ODE1LCJleHAiOjE3ODYxMTA0MTV9.tnEpNzzRpmWbkIbxqQnKIcdjj9m_ZModajfoRlkbmTc; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:55 GMT; HttpOnly; Secure; SameSite=None"
-  },
-  {
-    "email": "student0004@loadtesting.com",
-    "password": "GradeMeAI",
-    "success": true,
-    "message": "Logged in successfully",
-    "user": {
-      "id": "6a7226d7b003b9c339ea7ad5",
-      "firstName": "Student",
-      "lastName": "0004",
-      "email": "student0004@loadtesting.com"
+    "course.name": null,
+    "course.code": null,
+    "course.grade": null,
+    "grade": null,
+    "period": {
+      "term": null,
+      "year": null
     },
-    "user.id": "6a7226d7b003b9c339ea7ad5",
-    "id": "6a7226d7b003b9c339ea7ad5",
-    "user.firstName": "Student",
-    "firstName": "Student",
-    "user.lastName": "0004",
-    "lastName": "0004",
-    "user.email": "student0004@loadtesting.com",
-    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkNSIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDA0IiwiaWF0IjoxNzg2MDg4ODE1LCJleHAiOjE3ODYxMTA0MTV9.0KAD5l7ScWNA00f9MOtSSMaKxAM7h4Uw9okoeKg2cCc; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:55 GMT; HttpOnly; Secure; SameSite=None"
-  },
-  {
-    "email": "student0005@loadtesting.com",
-    "password": "GradeMeAI",
-    "success": true,
-    "message": "Logged in successfully",
-    "user": {
-      "id": "6a7226d7b003b9c339ea7ad6",
-      "firstName": "Student",
-      "lastName": "0005",
-      "email": "student0005@loadtesting.com"
-    },
-    "user.id": "6a7226d7b003b9c339ea7ad6",
-    "id": "6a7226d7b003b9c339ea7ad6",
-    "user.firstName": "Student",
-    "firstName": "Student",
-    "user.lastName": "0005",
-    "lastName": "0005",
-    "user.email": "student0005@loadtesting.com",
-    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkNiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDA1IiwiaWF0IjoxNzg2MDg4ODE1LCJleHAiOjE3ODYxMTA0MTV9.nRm-TzBN4nkGi1zC8jgmUjMgJesQvx62OoPCpRiK56g; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:55 GMT; HttpOnly; Secure; SameSite=None"
+    "period.term": null,
+    "term": null,
+    "period.year": null,
+    "year": null,
+    "testName": "Physics Test 1",
+    "maxScore": 1,
+    "userPrompt": "",
+    "isManualEntryQuestions": false,
+    "isOnlineExamination": true,
+    "onlineExamQuestions": [
+      {
+        "questionId": "6a7435f750af413da71ffad9",
+        "questionNumber": "1",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "Given below are two statements : Statement-I : The equivalent emf of two nonideal batteries connected in parallel is smaller than either of the two emfs. Statement-II : The equivalent internal resistance of two nonideal batteries connected in parallel is smaller than the internal resistance of either of the two batteries. In the light of the above statements, choose the correct answer from the options given below.",
+        "options": [
+          {
+            "key": "A",
+            "text": "Both Statement-I and Statement-II are false"
+          },
+          {
+            "key": "B",
+            "text": "Statement-I is false but Statement-II is true"
+          },
+          {
+            "key": "C",
+            "text": "Both Statement-I and Statement-II are true"
+          },
+          {
+            "key": "D",
+            "text": "Statement-I is true but Statement-II is false"
+          }
+        ],
+        "topic": "Current Electricity",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": false,
+        "diagramType": "",
+        "diagramBoundingBox": null,
+        "diagramPageFileURL": "",
+        "diagramFileURL": "",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Combination of Cells",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffadc",
+        "questionNumber": "2",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "Sliding contact of a potentiometer is in the middle of the potentiometer wire having resistance $R_p = 1\\Omega$ as shown in the figure. An external resistance of $R_e = 2\\Omega$ is connected via the sliding contact. The electric current in the circuit is :",
+        "options": [
+          {
+            "key": "A",
+            "text": "0.9 A"
+          },
+          {
+            "key": "B",
+            "text": "1.35 A"
+          },
+          {
+            "key": "C",
+            "text": "0.3 A"
+          },
+          {
+            "key": "D",
+            "text": "1.0 A"
+          }
+        ],
+        "topic": "Current Electricity",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": true,
+        "diagramType": "",
+        "diagramBoundingBox": [
+          645,
+          108,
+          770,
+          386
+        ],
+        "diagramPageFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/page_5_1782558831616.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181394&Signature=q4qogERNJlKH%2FVgOJJDxT8oRqqdNCNdTOxh9nlKYAHRgnEnu%2BurY5XlmfJhAJ1NBDBiGVpy1abBkxHx1eHX0%2BqfUdv9HTEvxcvhEZ80%2FHLHeIErN0SlxoXFNMrqlQyGcOI2PXAGFpSG3%2BGBtJCbEfMKGmPFgejYwHSo15e1wN482WNg%2BE8s%2Fb8Pdd3OR2QpE9JiaN00EhBtoL2ra9JHBNCCqsooLtSua5huoj1sefipDIt3GVEEDZoviWIhjE1hXNLzi15toe9hi%2F%2BZT7K5OIAoqjkRU0C1lurZ%2B%2BHPM%2FTfpxUkVK3rgQ5EdhbO9z%2F5XRhP5HdzuhrC2ywoNkNWQLw%3D%3D",
+        "diagramFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/cropped_diagram_6a3fb05dd8085bb7ccffe9d1.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181393&Signature=Pqg3fCc3mWVBkXGDQzRwvc7YHrtmidlmI6HS8zEpO%2BZBRn%2FDXeQ3ilHszev9LgbNB3eGJYU%2Bqbsm%2Fjlhj%2B7aFZNi9IwPXZpcixgQmuDxRAQfKI1Ns9rZcMZw4R3bvKF0sKu9GXmTnvrLAUHznKjUQOwKX5%2FBYDvvqM9EcCc9%2FTVXFdgDxnGOUmPzPwuY946WTyyF3RMgkbHEiUq52s4cbLftn%2FvP0B9nUkms23WgtJ6kAd%2FIfFLw60QGWcTHG5CqYUwBnIey9sTG5h0m9CFkrJOWvhNM7XYew0qIJPzNWemHDtDetKKjdbCeD4FqrcWTmfUbjJR4%2Fyec3kRp26jNKQ%3D%3D",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Potentiometer and Circuit Analysis",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffadf",
+        "questionNumber": "3",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "Which of the following resistivity ($\\rho$) v/s temperature (T) curves is most suitable to be used in wire bound standard resistors?",
+        "options": [
+          {
+            "key": "A",
+            "text": "(1)"
+          },
+          {
+            "key": "B",
+            "text": "(2)"
+          },
+          {
+            "key": "C",
+            "text": "(3)"
+          },
+          {
+            "key": "D",
+            "text": "(4)"
+          }
+        ],
+        "topic": "Current Electricity",
+        "type": "MCQ",
+        "difficulty": "Easy",
+        "source": "library",
+        "diagramSuggested": true,
+        "diagramType": "",
+        "diagramBoundingBox": [
+          122,
+          95,
+          350,
+          777
+        ],
+        "diagramPageFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/page_8_1782558851900.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181394&Signature=Mcm9ei%2FwelbZB8VbojHlW6E6FMTNdyeVjvGzPQD6snyxrLYj8pI8gy6mt9RKLt%2BEuFtFZEKy57QiGeYepsjvyvcvDKrrjdd60XOY%2BUlaPXpv3hjPtusyBhWL6Y8JZrcnldOdRb%2BR9ykXuY6e1%2BkhuPFXSgpV7XA4G30IR332mspAfqBoGAMkN6eE4hI7IQ9KkQDd5WgAP6SDcRwxwWTUM5kbyXnQZypz00%2FDa%2BOKBFHuiskMqIiPRl8xDSyxSXdmp%2FDYNbRej8ZLT2fh%2Bz0YtTFCipmHFomcesUPtEn5vTRJinPYlJPqsrJ5T7%2Fjyd%2FBchz%2B4H5YZntqsNEaUNwmvA%3D%3D",
+        "diagramFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/cropped_diagram_6a3fb05fd8085bb7ccffe9e7.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181394&Signature=XHu9Rin1wV7hfeOweEIf1eP%2FPQAoYGs6xLNH1bBF4VBL9%2BkyjRKa3DyoPfgeFZwv3wtH%2F2A%2B7n7T1yzNDFf1DymEBcmIiXnr2JlPoo%2FcY6CWxXEPFUKBGANIJJ5YG6X4OtwR%2FRhVLa0dxVneQXnh1kCdaoKZggzyOgarhMyt7J6sBt%2FkFEm0w4aG2raJwR6CvaoLbTGP1fgYlHmixHKIIgpE4Iheq0tgidzzgOwf2SPotzw1PFLThcg40vb6Twnb2xuCnRPBUQPGAvnIsAzfViSKtzwilvJqretMfYgx9IB843daWcnVJ6uMkVQAov2oBK9%2BZfQXjqEbKtKk%2F2q1Xg%3D%3D",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Resistivity and Temperature",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffae2",
+        "questionNumber": "4",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "Which of the following circuits represents a forward biased diode?",
+        "options": [
+          {
+            "key": "A",
+            "text": "(A) and (D) only"
+          },
+          {
+            "key": "B",
+            "text": "(B), (D) and (E) only"
+          },
+          {
+            "key": "C",
+            "text": "(C) and (E) only"
+          },
+          {
+            "key": "D",
+            "text": "(B), (C) and (E) only"
+          }
+        ],
+        "topic": "Electronic Devices",
+        "type": "MCQ",
+        "difficulty": "Easy",
+        "source": "library",
+        "diagramSuggested": true,
+        "diagramType": "",
+        "diagramBoundingBox": [
+          180,
+          105,
+          570,
+          434
+        ],
+        "diagramPageFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/page_5_1782558831616.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181395&Signature=tbh%2BKYvtGps7CMApzVglMhmDA8IRRN8vZv9LZXJdOti94ALjxvIfs%2BKFZcrighQDexfIfiAEKhK36vS6cFHJBJPWPW3M%2BZfjEJ3Gh89dapV6m7A93Md%2Bcg0KggQ0rt32A6mCoDcsW%2FFFFkrp0xzcEp4Inc9GqLvJpaG7FmYQqvRyK5p7ajQAtFfDHbKlu1bnaZQlc8SyPGPR1TCSW%2Bkfkx1N%2BjHnWbU%2Fpp%2FE0mMf0fe39Q4HRnRx5PkGkIS32hMabzWITN37Wr%2BAcZvBWQ9eL%2FszN6M3Da2fZcCo7RjfzSvYuvYYyDBRm4n8VbbVoxTC8w0j%2BVlDF%2F5%2BtwuK3GG2gg%3D%3D",
+        "diagramFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/cropped_diagram_6a3fb05cd8085bb7ccffe9cf.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181395&Signature=rkm3NUwFS44N2GehCY1N2t%2BPStY%2FLIEBWuE2%2BrDygAzZ%2F9VJMoU0zfs%2Bo051ZjAgxMbUN1Ro8v3zFvxeTVpmML5n3%2FalYDm1lpxgDVa49SNrw9MFScc95VgaHcKkHyPyf1MwflU1WpZqE6vxnqaZ0nZe157%2FkLp44npcyFXPZsyB5Crg57Idkb5hPltoHSL58T25CDtjqhIxYCnrFxjuOW%2F0gd3T%2FgQdcw79xzkFAR9p57JOk480DLcJpzAwrTfjAVo5ENz6Z3HzPmhSfD6TN%2Bvcpr%2BAUA%2FkeLlSA4y2OO06LUPAX5bZ2jni8h9xhFseKXK4CK4RoozD5hDrPk0JMQ%3D%3D",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Forward and Reverse Biasing of Diode",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffae5",
+        "questionNumber": "5",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "An electron is made to enter symmetrically between two parallel and equally but oppositely charged metal plates, each of 10 cm length. The electron emerges out of the electric field region with a horizontal component of velocity $10^6$ m/s. If the magnitude of the electric field between the plates is 9.1 V/cm, then the vertical component of velocity of electron is (mass of electron $= 9.1 \\times 10^{-31}$ kg and charge of electron $= 1.6 \\times 10^{-19}$ C)",
+        "options": [
+          {
+            "key": "A",
+            "text": "0"
+          },
+          {
+            "key": "B",
+            "text": "$1 \\times 10^6$ m/s"
+          },
+          {
+            "key": "C",
+            "text": "$16 \\times 10^6$ m/s"
+          },
+          {
+            "key": "D",
+            "text": "$16 \\times 10^4$ m/s"
+          }
+        ],
+        "topic": "Electrostatics",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": false,
+        "diagramType": "",
+        "diagramBoundingBox": null,
+        "diagramPageFileURL": "",
+        "diagramFileURL": "",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Motion of Charged Particle in Electric Field",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffae8",
+        "questionNumber": "6",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "A small point of mass $m$ is placed at a distance $2R$ from the centre ' $O'$ ' of a big uniform solid sphere of mass $M$ and radius $R$. The gravitational force on ' $m$ ' due to $M$ is $F_1$. A spherical part of radius $R/3$ is removed from the big sphere as shown in the figure and the gravitational force on $m$ due to remaining part of $M$ is found to be $F_2$. The value of ratio $F_1 : F_2$ is",
+        "options": [
+          {
+            "key": "A",
+            "text": "12 : 11"
+          },
+          {
+            "key": "B",
+            "text": "11 : 10"
+          },
+          {
+            "key": "C",
+            "text": "12 : 9"
+          },
+          {
+            "key": "D",
+            "text": "16 : 9"
+          }
+        ],
+        "topic": "Gravitation",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": true,
+        "diagramType": "",
+        "diagramBoundingBox": [
+          148,
+          380,
+          310,
+          738
+        ],
+        "diagramPageFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/page_6_1782558838796.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181395&Signature=Q7N8VSupb%2BbI%2BsvPT4UfTECVv%2Bc75no%2BWhxY49yvnzQ%2FFANn1uIdp4W45Fv454UnRnGPTVX4KEaR6yvRIEOZ0uQLR4WyJg3qcYRBrgDFN0KldGI91oRpxJDkwoCeCOBn5fWRW1GCN%2BUOVb%2BDKShVxcyA91ULE7sc5gNtsx6bkEf%2Bgam9%2FeXHDhzyVZRTnO5w3nbHwotKkqzcmcrfein1k9uaKpLE8ZnnBLP3AHN%2B%2FRQZzaI5o9UPlgmScS2Sk01v%2BQ8iv8zGWl4loN7fwrX%2Bx8JPP04H3CGwgWI%2FJdma00oty504EKbCFHkPH0yJLW9zC1BP%2BxWOhIG5qWBN22T72Q%3D%3D",
+        "diagramFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/cropped_diagram_6a3fb05dd8085bb7ccffe9d3.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181395&Signature=fLIs2QGWhQN4cMk62l7EV3HbWQES0nISUgbgy%2FJMTEt%2BwriEbqMb%2B%2F2DQXa7SOv3tHzowhrOTBh0lTjXB0h%2B4iJnEg%2Bn6k3Sbd6l6EbTd3oyDMjU%2B9BnNgIDbMkdR7r7iSimSHN0x47lMxYfZiv%2FiHUsCsS2Zk355Jz5k0fOF4H%2FGN5813SN3wIShwCzYta%2FVwgGhe4oxEUa6CpRzV%2BCKzFXNpGpA39KHjkXwksKd2lG5xa3AzngM2Hl9CgMnukC8d0Nd2rs%2FV2doIKEEINjTQxOlWHn%2BC7HZ1J8gSP2jkGivS4OPFzIb8RqxyxSpFN%2FfRfLPYS%2F2jZ291ymzDUMkA%3D%3D",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Gravitational Force due to Sphere with Cavity",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffaeb",
+        "questionNumber": "7",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "A closed organ and an open organ tube are filled by two different gases having same bulk modulus but different densities $\\rho_1$ and $\\rho_2$, respectively. The frequency of $9^{th}$ harmonic of closed tube is identical with $4^{th}$ harmonic of open tube. If the length of the closed tube is 10 cm and the density ratio of the gases is $\\rho_1 : \\rho_2 = 1 : 16$, then the length of the open tube is :",
+        "options": [
+          {
+            "key": "A",
+            "text": "$\\frac{15}{7}$ cm"
+          },
+          {
+            "key": "B",
+            "text": "$\\frac{20}{7}$ cm"
+          },
+          {
+            "key": "C",
+            "text": "$\\frac{15}{9}$ cm"
+          },
+          {
+            "key": "D",
+            "text": "$\\frac{20}{9}$ cm"
+          }
+        ],
+        "topic": "Oscillations and Waves",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": false,
+        "diagramType": "",
+        "diagramBoundingBox": null,
+        "diagramPageFileURL": "",
+        "diagramFileURL": "",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Organ Pipes and Harmonics",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffaee",
+        "questionNumber": "8",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "A line charge of length ' $\\frac{a}{2}$ ' is kept at the center of an edge $BC$ of a cube $ABCDEFGH$ having edge length ' $a$ ' as shown in the figure. If the density of line charge is $\\lambda$ C per unit length, then the total electric flux through all the faces of the cube will be . (Take, $\\epsilon_0$ as the free space permittivity)",
+        "options": [
+          {
+            "key": "A",
+            "text": "$\\frac{\\lambda a}{2\\epsilon_0}$"
+          },
+          {
+            "key": "B",
+            "text": "$\\frac{\\lambda a}{4\\epsilon_0}$"
+          },
+          {
+            "key": "C",
+            "text": "$\\frac{\\lambda a}{16\\epsilon_0}$"
+          },
+          {
+            "key": "D",
+            "text": "$\\frac{\\lambda a}{8\\epsilon_0}$"
+          }
+        ],
+        "topic": "Electrostatics",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": true,
+        "diagramType": "",
+        "diagramBoundingBox": [
+          597,
+          712,
+          717,
+          882
+        ],
+        "diagramPageFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/page_6_1782558838796.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181396&Signature=WeJB2VUxuk6PXYHZThFyJf6pzj9j5jEBVDRquYBYupEdqC%2BzWdlle52ErvymPbZuapNWE5z5jpMt4X9n%2BJGeoEqwJWT%2FdT6YOuDHR5hRN1p6Dzmup8G3z2mhbQ0qoZNYo4kzjW8IOFyFSv9tuP4okpjDF%2BhtNjfRYKCd8mK8XwWyvjjqAI9wy0HdbzaeVRcRIY92dpFmjxvlG327ok8VH63h1OnZqBJZtJ2xxA%2FDFieLXDZOnzYAUHUJNx0PWDa%2Fttt1t3pTGfX5KSWBN2FucI7KZ%2FCsKio5n1GHhxduDEqj9X6VxFhMjl1kRUDFwAZFZBWHvGYAUQ0Z5HZcuOP3pQ%3D%3D",
+        "diagramFileURL": "https://storage.googleapis.com/grademeai-qa/libraries/6a3faf45d8085bb7ccffe977/cropped_diagram_6a3fb05ed8085bb7ccffe9d9.png?GoogleAccessId=grademeai-qa-storage%40ai-grading-qa.iam.gserviceaccount.com&Expires=1786181395&Signature=bPT5XbPpUnvviRNT9eFiH1ijyxwlDSu57ipOuf7Exgr4JX%2BzElpzLd2HVm2SN5Mztm4195ra%2B01ynHTehNp83Sm4tb4F%2BnTxB%2BI5HW4f9zIwbWbmPehQ86NgriTLiTQGhUKCMTuJbd36f6Gaq7BEgKzPIi3ThwHMt3hEjyV5pNw7yQEQHt1C4FMcemw85ghmlVqWgMqc1VFq2a6t6BV2k6HiIUnbMY57e0UVPpiIakdhqFz3hDQG9JatKmO1G0VeAwT1hJT4k54nqPthrWWFSFG2jhdHfpiLTZCylbCawikEQSpWlzJay1WPjiNFzD6V6bBbWBAXBNAnTOei4ami%2FA%3D%3D",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Gauss's Law and Electric Flux",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffaf1",
+        "questionNumber": "9",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "A parallel-plate capacitor of capacitance $40\\mu\\text{ F}$ is connected to a $100\\text{ V}$ power supply. Now the intermediate space between the plates is filled with a dielectric material of dielectric constant $K = 2$. Due to the introduction of dielectric material, the extra charge and the change in the electrostatic energy in the capacitor, respectively, are",
+        "options": [
+          {
+            "key": "A",
+            "text": "$4\\text{ mC}$ and $0.2\\text{ J}$"
+          },
+          {
+            "key": "B",
+            "text": "$8\\text{ mC}$ and $2.0\\text{ J}$"
+          },
+          {
+            "key": "C",
+            "text": "$2\\text{ mC}$ and $0.4\\text{ J}$"
+          },
+          {
+            "key": "D",
+            "text": "$2\\text{ mC}$ and $0.2\\text{ J}$"
+          }
+        ],
+        "topic": "Electrostatics",
+        "type": "MCQ",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": false,
+        "diagramType": "",
+        "diagramBoundingBox": null,
+        "diagramPageFileURL": "",
+        "diagramFileURL": "",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Capacitors and Dielectrics",
+        "subject": "Physics"
+      },
+      {
+        "questionId": "6a7435f750af413da71ffaf4",
+        "questionNumber": "10",
+        "sectionNumber": null,
+        "maxScore": 1,
+        "courseOutcome": "",
+        "bloomsLevel": "",
+        "questionText": "A particle is projected at an angle of $30^\\circ$ from horizontal at a speed of $60\\text{ m/s}$. The height traversed by the particle in the first second is $h_0$ and height traversed in the last second, before it reaches the maximum height, is $h_1$. The ratio $h_0 : h_1$ is _________ [Take, $g = 10\\text{ m/s}^2$]",
+        "options": [],
+        "topic": "Kinematics",
+        "type": "Numerical",
+        "difficulty": "Medium",
+        "source": "library",
+        "diagramSuggested": false,
+        "diagramType": "",
+        "diagramBoundingBox": null,
+        "diagramPageFileURL": "",
+        "diagramFileURL": "",
+        "diagramMetadata": null,
+        "svgCode": "",
+        "isInvalid": false,
+        "subTopic": "Projectile Motion",
+        "subject": "Physics"
+      }
+    ],
+    "onlineExamQuestions.questionId": "6a7435f750af413da71ffad9",
+    "questionId": "6a7435f750af413da71ffad9",
+    "onlineExamQuestions.questionNumber": "1",
+    "questionNumber": "1",
+    "onlineExamQuestions.sectionNumber": null,
+    "sectionNumber": null,
+    "onlineExamQuestions.maxScore": 1,
+    "onlineExamQuestions.courseOutcome": "",
+    "courseOutcome": "",
+    "onlineExamQuestions.bloomsLevel": "",
+    "bloomsLevel": "",
+    "advancedOnlineExamOptions": [],
+    "isCalculatorAllowed": false,
+    "questionNumbers": [],
+    "isExternal": false,
+    "isPracticeTest": false,
+    "createdBy": "6a468c40ee3e74950fd07881",
+    "status": "Ready",
+    "questionsAttainment": [],
+    "manualEntryQuestions": [],
+    "createdAt": "2026-08-06T07:21:28.004Z",
+    "updatedAt": "2026-08-06T07:21:28.004Z",
+    "__v": 0,
+    "onlineExamQuestions.questionText": "Given below are two statements : Statement-I : The equivalent emf of two nonideal batteries connected in parallel is smaller than either of the two emfs. Statement-II : The equivalent internal resistance of two nonideal batteries connected in parallel is smaller than the internal resistance of either of the two batteries. In the light of the above statements, choose the correct answer from the options given below.",
+    "questionText": "Given below are two statements : Statement-I : The equivalent emf of two nonideal batteries connected in parallel is smaller than either of the two emfs. Statement-II : The equivalent internal resistance of two nonideal batteries connected in parallel is smaller than the internal resistance of either of the two batteries. In the light of the above statements, choose the correct answer from the options given below.",
+    "onlineExamQuestions.options": [
+      {
+        "key": "A",
+        "text": "Both Statement-I and Statement-II are false"
+      },
+      {
+        "key": "B",
+        "text": "Statement-I is false but Statement-II is true"
+      },
+      {
+        "key": "C",
+        "text": "Both Statement-I and Statement-II are true"
+      },
+      {
+        "key": "D",
+        "text": "Statement-I is true but Statement-II is false"
+      }
+    ],
+    "options": [
+      {
+        "key": "A",
+        "text": "Both Statement-I and Statement-II are false"
+      },
+      {
+        "key": "B",
+        "text": "Statement-I is false but Statement-II is true"
+      },
+      {
+        "key": "C",
+        "text": "Both Statement-I and Statement-II are true"
+      },
+      {
+        "key": "D",
+        "text": "Statement-I is true but Statement-II is false"
+      }
+    ],
+    "onlineExamQuestions.options.key": "A",
+    "key": "A",
+    "onlineExamQuestions.options.text": "Both Statement-I and Statement-II are false",
+    "text": "Both Statement-I and Statement-II are false",
+    "onlineExamQuestions.topic": "Current Electricity",
+    "topic": "Current Electricity",
+    "onlineExamQuestions.type": "MCQ",
+    "type": "MCQ",
+    "onlineExamQuestions.difficulty": "Medium",
+    "difficulty": "Medium",
+    "onlineExamQuestions.source": "library",
+    "source": "library",
+    "onlineExamQuestions.diagramSuggested": false,
+    "diagramSuggested": false,
+    "onlineExamQuestions.diagramType": "",
+    "diagramType": "",
+    "onlineExamQuestions.diagramBoundingBox": null,
+    "diagramBoundingBox": null,
+    "onlineExamQuestions.diagramPageFileURL": "",
+    "diagramPageFileURL": "",
+    "onlineExamQuestions.diagramFileURL": "",
+    "diagramFileURL": "",
+    "onlineExamQuestions.diagramMetadata": null,
+    "diagramMetadata": null,
+    "onlineExamQuestions.svgCode": "",
+    "svgCode": "",
+    "onlineExamQuestions.isInvalid": false,
+    "isInvalid": false,
+    "onlineExamQuestions.subTopic": "Combination of Cells",
+    "subTopic": "Combination of Cells",
+    "onlineExamQuestions.subject": "Physics",
+    "subject": "Physics"
   }
 ]

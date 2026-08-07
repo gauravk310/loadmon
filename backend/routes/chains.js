@@ -32,6 +32,132 @@ function saveChains(chains) {
   fs.writeFileSync(chainsPath, JSON.stringify(chains, null, 2));
 }
 
+// ── Helper: Save report files for Reports page ─────────────
+function saveChainReportFiles(serverUrl, objectResults, passedObjects, failedObjects, startTime) {
+  const endTime = Date.now();
+  const artilleryDir = path.join(__dirname, '..', 'artillery');
+  if (!fs.existsSync(artilleryDir)) {
+    fs.mkdirSync(artilleryDir, { recursive: true });
+  }
+
+  const studentLogLines = [];
+  const errorLogLines = [];
+  const sendTimestampLines = [];
+  const responseTimes = [];
+  const counters = {
+    'http.requests': 0,
+    'http.responses': 0,
+    'vusers.created': objectResults.length,
+    'vusers.completed': passedObjects,
+    'vusers.failed': failedObjects,
+  };
+
+  objectResults.forEach(objRes => {
+    const studentId = objRes.identifier || `VU #${objRes.objectIndex}`;
+    const rawObj = objRes.objectData || {};
+
+    (objRes.stepResults || []).forEach(sr => {
+      counters['http.requests']++;
+      counters['http.responses']++;
+
+      const statusCode = sr.status || 500;
+      const codeKey = `http.codes.${statusCode}`;
+      counters[codeKey] = (counters[codeKey] || 0) + 1;
+
+      if (typeof sr.durationMs === 'number' && sr.durationMs >= 0) {
+        responseTimes.push(sr.durationMs);
+      }
+
+      const fullUrl = serverUrl ? (serverUrl.replace(/\/$/, '') + sr.endpoint) : sr.endpoint;
+
+      const ts = new Date().toISOString();
+      sendTimestampLines.push(`${ts} - ${studentId} - ${sr.method} ${fullUrl}`);
+
+      const stepLog = {
+        timestamp: ts,
+        vuId: `VU #${objRes.objectIndex}`,
+        student: studentId,
+        studentDetails: {
+          email: rawObj.email || studentId,
+          name: rawObj.name || rawObj.username || rawObj.student || null,
+          id: rawObj.id || null
+        },
+        stepName: sr.stepName || `${sr.method} ${sr.endpoint}`,
+        method: sr.method || 'GET',
+        url: fullUrl,
+        status: sr.status || 'NETWORK_ERROR',
+        success: sr.success,
+        executed: true,
+        durationMs: sr.durationMs || 0,
+        error: sr.success ? null : (typeof sr.body === 'string' ? sr.body : JSON.stringify(sr.body || sr.error || ''))
+      };
+      studentLogLines.push(JSON.stringify(stepLog));
+
+      if (!sr.success) {
+        const errKey = `errors.HTTP_${statusCode}`;
+        counters[errKey] = (counters[errKey] || 0) + 1;
+
+        const errorLog = {
+          timestamp: ts,
+          url: fullUrl,
+          vars: rawObj,
+          status: sr.status || 'NETWORK_ERROR',
+          body: typeof sr.body === 'string' ? sr.body : JSON.stringify(sr.body || sr.error || '')
+        };
+        errorLogLines.push(JSON.stringify(errorLog));
+      }
+    });
+  });
+
+  responseTimes.sort((a, b) => a - b);
+  const count = responseTimes.length;
+  const sum = responseTimes.reduce((a, b) => a + b, 0);
+
+  const getPercentile = (arr, p) => {
+    if (arr.length === 0) return 0;
+    const index = Math.ceil((p / 100) * arr.length) - 1;
+    return arr[Math.max(0, Math.min(index, arr.length - 1))];
+  };
+
+  const summaries = {
+    'http.response_time': {
+      min: count > 0 ? responseTimes[0] : 0,
+      max: count > 0 ? responseTimes[count - 1] : 0,
+      mean: count > 0 ? Math.round(sum / count) : 0,
+      median: count > 0 ? getPercentile(responseTimes, 50) : 0,
+      p75: count > 0 ? getPercentile(responseTimes, 75) : 0,
+      p90: count > 0 ? getPercentile(responseTimes, 90) : 0,
+      p95: count > 0 ? getPercentile(responseTimes, 95) : 0,
+      p99: count > 0 ? getPercentile(responseTimes, 99) : 0,
+    }
+  };
+
+  const resultsData = {
+    aggregate: {
+      counters,
+      summaries,
+      firstMetricAt: startTime,
+      lastMetricAt: endTime
+    },
+    intermediate: [
+      {
+        period: String(startTime),
+        counters,
+        summaries
+      }
+    ]
+  };
+
+  try {
+    fs.writeFileSync(path.join(artilleryDir, 'student-logs.json'), studentLogLines.join('\n'));
+    fs.writeFileSync(path.join(artilleryDir, 'error-logs.json'), errorLogLines.join('\n'));
+    fs.writeFileSync(path.join(artilleryDir, 'send-timestamps.log'), sendTimestampLines.join('\n'));
+    fs.writeFileSync(path.join(artilleryDir, 'results.json'), JSON.stringify(resultsData, null, 2));
+  } catch (err) {
+    console.error('Failed to write artillery results for data-driven chain:', err.message);
+  }
+}
+
 // ── Helper: flatten JSON object keys (dot notation) ────────
 function flattenKeys(obj, prefix = '') {
   const keys = new Set();
@@ -581,7 +707,6 @@ router.post('/run-data-driven', async (req, res) => {
     const targetObjects = dataObjects.slice(0, targetCount);
 
     const startTime = Date.now();
-    const objectResults = [];
     let passedObjects = 0;
     let failedObjects = 0;
 
@@ -596,15 +721,13 @@ router.post('/run-data-driven', async (req, res) => {
       totalDurationMs: 0
     }));
 
-    for (let objIdx = 0; objIdx < targetObjects.length; objIdx++) {
+    const objectPromises = targetObjects.map(async (rawObj, objIdx) => {
       if (objIdx > 0 && arrRate > 0) {
-        const pacingDelayMs = Math.round(1000 / arrRate);
+        const pacingDelayMs = Math.round((1000 / arrRate) * objIdx);
         await new Promise(resolve => setTimeout(resolve, pacingDelayMs));
       }
 
-      const rawObj = targetObjects[objIdx];
       const objectContext = typeof rawObj === 'object' && rawObj !== null ? { ...rawObj } : { value: rawObj };
-
       const identifier = objectContext.email || objectContext.username || objectContext.id || objectContext.student || `Object #${objIdx + 1}`;
 
       const stepResults = [];
@@ -739,15 +862,19 @@ router.post('/run-data-driven', async (req, res) => {
         failedObjects++;
       }
 
-      objectResults.push({
+      return {
         objectIndex: objIdx + 1,
         identifier,
         objectData: rawObj,
         success: objectSuccess,
         totalDurationMs: objectTotalDurationMs,
         stepResults
-      });
-    }
+      };
+    });
+
+    const objectResults = await Promise.all(objectPromises);
+
+    saveChainReportFiles(serverUrl, objectResults, passedObjects, failedObjects, startTime);
 
     const totalDurationMs = Date.now() - startTime;
     const totalExecuted = objectResults.length;

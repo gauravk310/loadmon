@@ -3,11 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 
-// Reset error and student logs at test start
+// Reset error, student, and timestamp logs at test start
 const errorLogPath = path.join(__dirname, 'error-logs.json');
 const studentLogPath = path.join(__dirname, 'student-logs.json');
+const sendTimestampLogPath = path.join(__dirname, 'send-timestamps.log');
 fs.writeFileSync(errorLogPath, '');
 fs.writeFileSync(studentLogPath, '');
+fs.writeFileSync(sendTimestampLogPath, '');
 
 // ── Load user data ────────────────────────────────────────
 // Supports USERDATA_PATH env var (set by backend) or falls back to local uploads/
@@ -140,8 +142,26 @@ function assignUser(userContext, events, done) {
   if (!userContext.vars._vuId) {
     userContext.vars._vuId = userContext.uuid || `VU-${globalIndex + 1}`;
   }
+  if (!userContext.vars.$uuid) {
+    userContext.vars.$uuid = userContext.vars._vuId;
+  }
 
   return done();
+}
+
+// ── logSendTimestamp hook ─────────────────────────────────
+function logSendTimestamp(requestParams, context, ee, next) {
+  const ts = new Date().toISOString();
+  const vuId = context?.vars?.$uuid || context?.vars?._vuId || context?.vars?.userId || context?.vars?.email || 'unknown';
+  const method = requestParams?.method || 'GET';
+  const url = requestParams?.url || '';
+  const line = `${ts} - VU:${vuId} - ${method} ${url}\n`;
+  try {
+    fs.appendFileSync(sendTimestampLogPath, line);
+  } catch (err) {
+    console.error('Failed to write timestamp log:', err);
+  }
+  return typeof next === 'function' ? next() : undefined;
 }
 
 // ── beforeStep ────────────────────────────────────────────
@@ -150,6 +170,9 @@ function beforeStep(requestParams, context, ee, next) {
   if (requestParams.name) {
     requestParams._stepName = requestParams.name;
   }
+
+  // Log client-side send timestamp for concurrency verification
+  logSendTimestamp(requestParams, context, ee, () => {});
 
   const resolveValue = (str) => {
     if (typeof str !== 'string') return str;
@@ -374,4 +397,4 @@ function logResponse(requestParams, response, context, ee, next) {
   return next();
 }
 
-module.exports = { assignUser, beforeStep, logResponse };
+module.exports = { assignUser, beforeStep, logResponse, logSendTimestamp };

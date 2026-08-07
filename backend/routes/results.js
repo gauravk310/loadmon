@@ -24,6 +24,51 @@ router.get('/', (req, res) => {
 });
 
 const studentLogPath = path.join(artilleryDir, 'student-logs.json');
+const sendTimestampLogPath = path.join(artilleryDir, 'send-timestamps.log');
+
+// ── GET /api/results/timestamps ───────────────────────────
+router.get('/timestamps', (req, res) => {
+  if (!fs.existsSync(sendTimestampLogPath)) {
+    return res.json({ success: true, timestamps: [], spreadMs: 0 });
+  }
+
+  try {
+    const raw = fs.readFileSync(sendTimestampLogPath, 'utf8').trim();
+    if (!raw) return res.json({ success: true, timestamps: [], spreadMs: 0 });
+
+    const lines = raw.split('\n').filter(Boolean);
+    const timestamps = lines.map(line => {
+      const parts = line.split(' - ');
+      const isoTs = parts[0];
+      const vu = parts[1] || '';
+      const reqInfo = parts.slice(2).join(' - ') || '';
+      const dateObj = new Date(isoTs);
+      return {
+        raw: line,
+        timestamp: isoTs,
+        timeMs: dateObj.getTime(),
+        vu,
+        request: reqInfo
+      };
+    });
+
+    const validTimes = timestamps.map(t => t.timeMs).filter(t => !isNaN(t));
+    let minTime = validTimes.length > 0 ? Math.min(...validTimes) : 0;
+    let maxTime = validTimes.length > 0 ? Math.max(...validTimes) : 0;
+    let spreadMs = maxTime - minTime;
+
+    res.json({
+      success: true,
+      count: timestamps.length,
+      spreadMs,
+      firstTimestamp: timestamps[0]?.timestamp || null,
+      lastTimestamp: timestamps[timestamps.length - 1]?.timestamp || null,
+      timestamps
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // ── GET /api/results/errors ───────────────────────────────
 router.get('/errors', (req, res) => {

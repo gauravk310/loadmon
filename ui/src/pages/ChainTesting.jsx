@@ -265,6 +265,21 @@ export default function ChainTesting() {
   const [executing, setExecuting] = useState(false)
   const [execError, setExecError] = useState(null)
 
+  const [execPattern, setExecPattern] = useState('rate') // 'rate' | 'burst'
+  const [burstCount, setBurstCount] = useState(25)
+  const [timestampsData, setTimestampsData] = useState(null)
+  const [loadingTimestamps, setLoadingTimestamps] = useState(false)
+
+  const handleFetchTimestamps = async () => {
+    setLoadingTimestamps(true)
+    try {
+      const r = await fetch(`${API}/results/timestamps`)
+      const d = await r.json()
+      if (d.success) setTimestampsData(d)
+    } catch {}
+    setLoadingTimestamps(false)
+  }
+
   const [baseUserSessionsData, setBaseUserSessionsData] = useState(null)
   const [baseStatusData, setBaseStatusData] = useState(null)
   const [baseLoadMessage, setBaseLoadMessage] = useState(null)
@@ -773,13 +788,22 @@ export default function ChainTesting() {
     }
     setExecError(null)
     setExecuting(true)
+    setTimestampsData(null)
 
-    const phases = [{
-      duration: Number(duration) || 3,
-      arrivalRate: Number(arrivalRate) || 1,
-      maxVusers: Number(numUsers) || 1,
-      name: `Chain Test: ${executorChain.name}`
-    }]
+    const phases = execPattern === 'burst' ? [
+      {
+        duration: 1,
+        arrivalCount: Number(burstCount) || 25,
+        name: `Concurrent Burst - ${burstCount || 25} Users`
+      }
+    ] : [
+      {
+        duration: Number(duration) || 3,
+        arrivalRate: Number(arrivalRate) || 1,
+        maxVusers: Number(numUsers) || 1,
+        name: `Chain Test: ${executorChain.name}`
+      }
+    ]
 
     const res = await startTest({
       environment: 'custom',
@@ -1682,61 +1706,113 @@ export default function ChainTesting() {
 
           {/* Executor Configuration Form */}
           <div className="card card-p mb-2">
-            <h4 style={{ margin: 0, marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              ⚙️ Executor Configuration
-            </h4>
-
-            <div className="grid-3" style={{ gap: '1.25rem' }}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="num-users-input">
-                  Number of Users
-                </label>
-                <input
-                  id="num-users-input"
-                  type="number"
-                  className="form-input"
-                  value={numUsers}
-                  onChange={e => setNumUsers(Number(e.target.value))}
-                  min={1}
-                />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                  👥 Available users in Data Manager: <strong>{availableUsersCount}</strong>
-                </span>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="duration-input">
-                  Duration (seconds)
-                </label>
-                <input
-                  id="duration-input"
-                  type="number"
-                  className="form-input"
-                  value={duration}
-                  onChange={e => setDuration(Number(e.target.value))}
-                  min={5}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="arrival-rate-input">
-                  Arrival Rate (users / second)
-                </label>
-                <input
-                  id="arrival-rate-input"
-                  type="number"
-                  className="form-input"
-                  value={arrivalRate}
-                  onChange={e => setArrivalRate(Number(e.target.value))}
-                  min={1}
-                />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                  Arrival rate = {arrivalRate} creates {arrivalRate} parallel user streams
-                </span>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                ⚙️ Executor Configuration
+              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-elevated)', padding: '3px 6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: 4 }}>Load Pattern:</span>
+                <button
+                  type="button"
+                  className={`btn btn-xs ${execPattern === 'rate' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setExecPattern('rate')}
+                  style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                >
+                  📈 Sustained Rate (arrivalRate)
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-xs ${execPattern === 'burst' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setExecPattern('burst')}
+                  style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                >
+                  ⚡ Concurrent Burst (arrivalCount)
+                </button>
               </div>
             </div>
 
-            <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {execPattern === 'burst' ? (
+              <div className="grid-2 mb-2" style={{ gap: '1.25rem', background: 'rgba(99, 102, 241, 0.08)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ color: 'var(--accent-light)', fontWeight: 700 }}>
+                    ⚡ Burst Virtual Users (arrivalCount)
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={burstCount}
+                    onChange={e => setBurstCount(Number(e.target.value))}
+                    min={1}
+                    max={1000}
+                    style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--accent-light)' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                    Fires all {burstCount} VUs simultaneously in a single 1-second burst window at t=0
+                  </span>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    <strong style={{ color: 'var(--accent-light)' }}>🎯 Concurrent Burst Mode (duration: 1s):</strong>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 3 }}>
+                      Artillery dispatches all {burstCount} virtual users in parallel within milliseconds. Use client-side timestamp logs to audit true send-side concurrency.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid-3" style={{ gap: '1.25rem' }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="num-users-input">
+                    Number of Users
+                  </label>
+                  <input
+                    id="num-users-input"
+                    type="number"
+                    className="form-input"
+                    value={numUsers}
+                    onChange={e => setNumUsers(Number(e.target.value))}
+                    min={1}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                    👥 Available users in Data Manager: <strong>{availableUsersCount}</strong>
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="duration-input">
+                    Duration (seconds)
+                  </label>
+                  <input
+                    id="duration-input"
+                    type="number"
+                    className="form-input"
+                    value={duration}
+                    onChange={e => setDuration(Number(e.target.value))}
+                    min={5}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="arrival-rate-input">
+                    Arrival Rate (users / second)
+                  </label>
+                  <input
+                    id="arrival-rate-input"
+                    type="number"
+                    className="form-input"
+                    value={arrivalRate}
+                    onChange={e => setArrivalRate(Number(e.target.value))}
+                    min={1}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                    Arrival rate = {arrivalRate} creates {arrivalRate} parallel user streams
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
               {testStatus.running ? (
                 <button
                   className="btn btn-danger btn-lg"
@@ -1752,16 +1828,72 @@ export default function ChainTesting() {
                   disabled={executing || !executorChain}
                   style={{ minWidth: 180 }}
                 >
-                  {executing ? '⏳ Starting…' : '▶️ Execute Chain Test'}
+                  {executing ? '⏳ Starting…' : execPattern === 'burst' ? `⚡ Fire ${burstCount} VU Burst` : '▶️ Execute Chain Test'}
                 </button>
               )}
+
+              <button
+                type="button"
+                className="btn btn-ghost btn-md"
+                onClick={handleFetchTimestamps}
+                disabled={loadingTimestamps}
+                style={{ color: 'var(--cyan)', borderColor: 'rgba(34,211,238,0.3)', fontWeight: 600 }}
+              >
+                {loadingTimestamps ? '⏳ Fetching…' : '⏱ Verify Send Timestamps & Concurrency'}
+              </button>
+
               {testStatus.running && (
                 <span className="badge badge-success animate-pulse" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
                   🟢 Chain Test Executing Live...
                 </span>
               )}
             </div>
-          </div>
+
+            {/* Timestamp Audit Card */}
+            {timestampsData && (
+              <div className="mt-3 card card-p animate-fade-in" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--cyan)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--cyan)', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    ⏱ Client-Side Send Timestamp Verification Log
+                  </div>
+                  <button type="button" className="btn btn-ghost btn-xs" style={{ color: 'var(--text-muted)' }} onClick={() => setTimestampsData(null)}>
+                    ✕ Close
+                  </button>
+                </div>
+
+                <div className="grid-3 mb-3" style={{ gap: '0.75rem' }}>
+                  <div style={{ background: 'var(--bg-base)', padding: '0.5rem 0.75rem', borderRadius: 4, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Total Requests Fired</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>{timestampsData.count || 0}</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-base)', padding: '0.5rem 0.75rem', borderRadius: 4, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Send Time Spread</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: timestampsData.spreadMs <= 50 ? 'var(--success)' : 'var(--warning)', marginTop: 2 }}>
+                      {timestampsData.spreadMs || 0} <span style={{ fontSize: '0.75rem' }}>ms</span>
+                    </div>
+                  </div>
+                  <div style={{ background: 'var(--bg-base)', padding: '0.5rem 0.75rem', borderRadius: 4, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Concurrency Window</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cyan)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {timestampsData.firstTimestamp ? timestampsData.firstTimestamp.split('T')[1]?.replace('Z','') : '—'} → {timestampsData.lastTimestamp ? timestampsData.lastTimestamp.split('T')[1]?.replace('Z','') : '—'}
+                    </div>
+                  </div>
+                </div>
+
+                {timestampsData.timestamps && timestampsData.timestamps.length > 0 ? (
+                  <div style={{ maxHeight: 180, overflowY: 'auto', background: 'var(--bg-base)', padding: '0.5rem', borderRadius: 4, border: '1px solid var(--border)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
+                    {timestampsData.timestamps.map((t, idx) => (
+                      <div key={idx} style={{ color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '2px 0' }}>
+                        {t.raw}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No timestamps recorded yet. Execute a test with beforeRequest hook to capture send timestamps.</div>
+                )}
+              </div>
+            )}
+            </div>
 
           {/* Connected Step Node Flow Visualizer */}
           {executorChain && executorChain.steps?.length > 0 ? (

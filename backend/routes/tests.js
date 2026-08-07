@@ -128,7 +128,16 @@ function buildYaml(config, phases, environment) {
   let phasesYaml = '';
   if (phases && phases.length > 0) {
     phases.forEach(p => {
-      phasesYaml += `\n        - duration: ${p.duration}\n          arrivalRate: ${p.arrivalRate}`;
+      if (p.pause) {
+        phasesYaml += `\n        - pause: ${p.pause}`;
+        return;
+      }
+      phasesYaml += `\n        - duration: ${p.duration !== undefined ? p.duration : 1}`;
+      if (p.arrivalCount !== undefined && p.arrivalCount !== null) {
+        phasesYaml += `\n          arrivalCount: ${p.arrivalCount}`;
+      } else if (p.arrivalRate !== undefined && p.arrivalRate !== null) {
+        phasesYaml += `\n          arrivalRate: ${p.arrivalRate}`;
+      }
       if (p.rampTo) phasesYaml += `\n          rampTo: ${p.rampTo}`;
       if (p.maxVusers) phasesYaml += `\n          maxVusers: ${p.maxVusers}`;
       if (p.name) phasesYaml += `\n          name: "${p.name}"`;

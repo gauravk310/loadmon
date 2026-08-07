@@ -49,18 +49,20 @@ function VarDropdown({ suggestions, onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
 
-  if (!suggestions || !suggestions.length) return null
+  if (!Array.isArray(suggestions) || !suggestions.length) return null
 
   // Group suggestions by stepLabel / stepName
   const groupsMap = new Map()
 
   suggestions.forEach(s => {
-    const rawLabel = s.stepLabel || (s.stepNum ? `Step ${s.stepNum}: ${s.stepName}` : s.stepName) || 'Saved Variables'
+    if (!s || typeof s !== 'object') return
+    const rawLabel = String(s.stepLabel || (s.stepNum ? `Step ${s.stepNum}: ${s.stepName}` : s.stepName) || 'Saved Variables')
+    const labelLower = rawLabel.toLowerCase()
     if (!groupsMap.has(rawLabel)) {
       groupsMap.set(rawLabel, {
         label: rawLabel,
-        stepNum: s.stepNum ?? 999,
-        isCredential: rawLabel.toLowerCase().includes('credential') || rawLabel.toLowerCase().includes('initial'),
+        stepNum: typeof s.stepNum === 'number' ? s.stepNum : 999,
+        isCredential: labelLower.includes('credential') || labelLower.includes('initial'),
         items: []
       })
     }
@@ -85,7 +87,7 @@ function VarDropdown({ suggestions, onSelect, onClose }) {
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <span>{g.isCredential ? '🔑 ' : '📌 '}{g.label.toUpperCase()}</span>
+            <span>{g.isCredential ? '🔑 ' : '📌 '}{String(g.label).toUpperCase()}</span>
             <span style={{ opacity: 0.7, fontSize: '0.62rem', fontWeight: 500 }}>({g.items.length})</span>
           </div>
           {g.items.map((s, i) => (

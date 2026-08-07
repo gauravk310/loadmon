@@ -110,6 +110,25 @@ router.get('/preview', (req, res) => {
   }
 });
 
+// ── GET /api/upload/raw ──────────────────────────────────
+router.get('/raw', (req, res) => {
+  if (!fs.existsSync(userDataPath)) {
+    return res.json({ success: false, exists: false, error: 'No data uploaded yet' });
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
+    res.json({
+      success: true,
+      exists: true,
+      rowCount: data.length,
+      data
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ── DELETE /api/upload/clear ──────────────────────────────
 router.delete('/clear', (req, res) => {
   if (fs.existsSync(userDataPath)) fs.unlinkSync(userDataPath);

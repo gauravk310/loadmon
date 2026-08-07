@@ -112,7 +112,7 @@ function SmartInput({ value, onChange, placeholder, style, allVarSuggestions, cl
     const match = textBefore.match(/\{\{([\w.]*)$/)
     if (match) {
       const typed = match[1].toLowerCase()
-      const filtered = allVarSuggestions.filter(s => s.key.toLowerCase().includes(typed))
+      const filtered = (allVarSuggestions || []).filter(s => s && s.key && s.key.toLowerCase().includes(typed))
       setFilteredSuggestions(filtered)
       setShowDropdown(filtered.length > 0)
     } else {
@@ -124,11 +124,11 @@ function SmartInput({ value, onChange, placeholder, style, allVarSuggestions, cl
     if (!inputRef.current) return
     const el = inputRef.current
     const cursor = el.selectionStart
-    const textBefore = value.substring(0, cursor)
-    const textAfter = value.substring(cursor)
+    const textBefore = (value || '').substring(0, cursor)
+    const textAfter = (value || '').substring(cursor)
     const openIdx = textBefore.lastIndexOf('{{')
     if (openIdx === -1) return
-    const newVal = value.substring(0, openIdx) + `{{${key}}}` + textAfter
+    const newVal = (value || '').substring(0, openIdx) + `{{${key}}}` + textAfter
     onChange(newVal)
     setShowDropdown(false)
   }
@@ -138,7 +138,7 @@ function SmartInput({ value, onChange, placeholder, style, allVarSuggestions, cl
       <input
         ref={inputRef}
         className={className || 'form-input'}
-        value={value}
+        value={value || ''}
         onChange={handleChange}
         placeholder={placeholder}
         style={style}
@@ -168,7 +168,7 @@ function SmartTextarea({ value, onChange, placeholder, rows, style, allVarSugges
     const match = textBefore.match(/\{\{([\w.]*)$/)
     if (match) {
       const typed = match[1].toLowerCase()
-      const filtered = allVarSuggestions.filter(s => s.key.toLowerCase().includes(typed))
+      const filtered = (allVarSuggestions || []).filter(s => s && s.key && s.key.toLowerCase().includes(typed))
       setFilteredSuggestions(filtered)
       setShowDropdown(filtered.length > 0)
     } else {
@@ -180,11 +180,11 @@ function SmartTextarea({ value, onChange, placeholder, rows, style, allVarSugges
     if (!textareaRef.current) return
     const el = textareaRef.current
     const cursor = el.selectionStart
-    const textBefore = value.substring(0, cursor)
-    const textAfter = value.substring(cursor)
+    const textBefore = (value || '').substring(0, cursor)
+    const textAfter = (value || '').substring(cursor)
     const openIdx = textBefore.lastIndexOf('{{')
     if (openIdx === -1) return
-    const newVal = value.substring(0, openIdx) + `{{${key}}}` + textAfter
+    const newVal = (value || '').substring(0, openIdx) + `{{${key}}}` + textAfter
     onChange(newVal)
     setShowDropdown(false)
   }
@@ -225,6 +225,19 @@ export default function ChainTesting() {
   const [saveError, setSaveError] = useState(null)
   const [editingChainId, setEditingChainId] = useState(null)
 
+  // ── JSON Data Extraction & Sequential Execution State ───────
+  const [jsonInput, setJsonInput] = useState('')
+  const [extractedObjects, setExtractedObjects] = useState([])
+  const [extractedCount, setExtractedCount] = useState(0)
+  const [extractError, setExtractError] = useState(null)
+  const [objectLimit, setObjectLimit] = useState(5)
+  const [dataDrivenRunning, setDataDrivenRunning] = useState(false)
+  const [dataDrivenError, setDataDrivenError] = useState(null)
+  const [reportCard, setReportCard] = useState(null)
+  const [dataResults, setDataResults] = useState([])
+  const [dataSearch, setDataSearch] = useState('')
+  const [dataFilter, setDataFilter] = useState('ALL')
+
   // ── Chain Executor State ──────────────────────────────────
   const [selectedChainId, setSelectedChainId] = useState('')
   const [numUsers, setNumUsers] = useState(1)
@@ -233,6 +246,121 @@ export default function ChainTesting() {
   const [availableUsersCount, setAvailableUsersCount] = useState(0)
   const [executing, setExecuting] = useState(false)
   const [execError, setExecError] = useState(null)
+
+  const handleLoadUserDataJson = async () => {
+    setExtractError(null)
+    try {
+      const res = await fetch(`${API}/upload/raw`)
+      const data = await res.json()
+      if (data.success && Array.isArray(data.data)) {
+        const jsonStr = JSON.stringify(data.data, null, 2)
+        setJsonInput(jsonStr)
+        setExtractedObjects(data.data)
+        setExtractedCount(data.data.length)
+        if (!objectLimit || objectLimit > data.data.length) {
+          setObjectLimit(Math.min(5, data.data.length))
+        }
+      } else {
+        setExtractError(data.error || 'No uploaded user data found in backend.')
+      }
+    } catch (err) {
+      setExtractError(`Failed to load uploaded data: ${err.message}`)
+    }
+  }
+
+  const handleExtractData = () => {
+    setExtractError(null)
+    setReportCard(null)
+    setDataResults([])
+    try {
+      const raw = jsonInput.trim()
+      if (!raw) {
+        setExtractError('Please enter or paste JSON body array')
+        return
+      }
+      const parsed = JSON.parse(raw)
+      const arr = Array.isArray(parsed) ? parsed : [parsed]
+      if (arr.length === 0) {
+        setExtractError('Extracted JSON array is empty')
+        return
+      }
+      setExtractedObjects(arr)
+      setExtractedCount(arr.length)
+      if (!objectLimit || objectLimit > arr.length) {
+        setObjectLimit(Math.min(5, arr.length))
+      }
+    } catch (e) {
+      setExtractError(`Invalid JSON format: ${e.message}`)
+    }
+  }
+
+  const handleRunDataDrivenChain = async () => {
+    let objs = extractedObjects
+    if (objs.length === 0 && jsonInput.trim()) {
+      try {
+        const parsed = JSON.parse(jsonInput.trim())
+        objs = Array.isArray(parsed) ? parsed : [parsed]
+        setExtractedObjects(objs)
+        setExtractedCount(objs.length)
+      } catch {}
+    }
+
+    if (!objs || objs.length === 0) {
+      setDataDrivenError('Please extract JSON data objects before running the chain.')
+      return
+    }
+
+    if (!serverUrl) {
+      setDataDrivenError('Target server URL is missing. Please select/configure a target application.')
+      return
+    }
+
+    setDataDrivenError(null)
+    setDataDrivenRunning(true)
+
+    try {
+      const stepsPayload = steps.map(s => ({
+        name: s.name,
+        method: s.method,
+        endpoint: s.endpoint,
+        headers: s.headers || {},
+        body: s.body || ''
+      }))
+
+      const res = await fetch(`${API}/chains/run-data-driven`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serverUrl,
+          appUrl,
+          steps: stepsPayload,
+          objects: objs,
+          limit: Number(objectLimit) || objs.length
+        })
+      })
+
+      const contentType = res.headers.get('content-type') || ''
+      let data = null
+      if (contentType.includes('application/json')) {
+        data = await res.json()
+      } else {
+        const textText = await res.text()
+        throw new Error(`Server returned HTTP ${res.status}: ${textText.substring(0, 100)}`)
+      }
+
+      setDataDrivenRunning(false)
+
+      if (data.success) {
+        setReportCard(data.reportCard)
+        setDataResults(data.objectResults || [])
+      } else {
+        setDataDrivenError(data.error || 'Failed to run data-driven chain')
+      }
+    } catch (err) {
+      setDataDrivenRunning(false)
+      setDataDrivenError(err.message)
+    }
+  }
 
   // Auto expand first step on mount
   useEffect(() => {
@@ -701,6 +829,118 @@ export default function ChainTesting() {
             </div>
           </div>
 
+          {/* ════════════════════════════════════════════════════════════ */}
+          {/* JSON DATA EXTRACTION & DATA-DRIVEN CHAIN RUNNER              */}
+          {/* ════════════════════════════════════════════════════════════ */}
+          <div className="card card-p style-glass mb-2" style={{ border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>📦</span> JSON Body Input & Data Extraction
+                </h3>
+                <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  Extract virtual user objects from JSON array input (e.g., 2,000 objects from <code>userData.json</code>) and execute the chain sequentially.
+                </p>
+              </div>
+
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={handleLoadUserDataJson}
+                style={{ color: 'var(--accent-light)', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+              >
+                📂 Auto-Load from uploaded userData.json
+              </button>
+            </div>
+
+            {extractError && (
+              <div className="card card-p mb-2" style={{ borderColor: 'var(--danger)', background: 'var(--danger-dim)', color: 'var(--danger)', padding: '0.5rem 1rem', fontSize: '0.82rem' }}>
+                ❌ {extractError}
+              </div>
+            )}
+
+            <div className="form-group mb-3">
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>JSON Body Input (Array of Objects)</span>
+                {extractedCount > 0 && (
+                  <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
+                    ✅ {extractedCount.toLocaleString()} Objects Extracted
+                  </span>
+                )}
+              </label>
+              <textarea
+                className="form-textarea"
+                rows={5}
+                value={jsonInput}
+                onChange={e => setJsonInput(e.target.value)}
+                placeholder={'[\n  {\n    "email": "student0001@loadtesting.com",\n    "password": "GradeMeAI"\n  },\n  {\n    "email": "student0002@loadtesting.com",\n    "password": "GradeMeAI"\n  }\n]'}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  className="btn btn-primary"
+                  onClick={handleExtractData}
+                >
+                  🔍 Extract Data
+                </button>
+
+                {extractedCount > 0 && (
+                  <div className="flex items-center gap-2">
+                    <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Limit Objects to Run:
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      style={{ width: 100, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                      value={objectLimit}
+                      onChange={e => setObjectLimit(Math.max(1, Number(e.target.value)))}
+                      min={1}
+                      max={extractedCount}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      out of {extractedCount.toLocaleString()} objects
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                className="btn btn-success btn-lg"
+                onClick={handleRunDataDrivenChain}
+                disabled={dataDrivenRunning || (!extractedObjects.length && !jsonInput.trim())}
+                style={{ minWidth: 200 }}
+              >
+                {dataDrivenRunning ? '⏳ Executing Objects…' : '▶️ Run Data-Driven Chain'}
+              </button>
+            </div>
+
+            {dataDrivenError && (
+              <div className="card card-p mt-3" style={{ borderColor: 'var(--danger)', background: 'var(--danger-dim)', color: 'var(--danger)', padding: '0.6rem 1rem', fontSize: '0.82rem' }}>
+                ❌ {dataDrivenError}
+              </div>
+            )}
+
+            {/* Extracted Objects Sample Preview */}
+            {extractedCount > 0 && !reportCard && (
+              <div className="mt-3" style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                  Preview First {Math.min(3, extractedCount)} Extracted Objects:
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.4rem' }}>
+                  {extractedObjects.slice(0, 3).map((obj, i) => (
+                    <div key={i} style={{ background: 'var(--bg-elevated)', padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', minWidth: 220 }}>
+                      <div style={{ color: 'var(--accent-light)', fontWeight: 700, marginBottom: 3 }}>Object #{i + 1}</div>
+                      <div>{JSON.stringify(obj, null, 2)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Linked Step Editor Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {steps.map((step, idx) => {
@@ -987,6 +1227,200 @@ export default function ChainTesting() {
           >
             ➕ Add Step
           </button>
+
+          {/* ════════════════════════════════════════════════════════════ */}
+          {/* REPORT CARD & SUMMARY TABLE                                  */}
+          {/* ════════════════════════════════════════════════════════════ */}
+          {reportCard && (
+            <div className="card card-p animate-fade-in style-glass mt-3" style={{ border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--success)', fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>🎓</span> Chain Execution Report Card
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Execution summary for {reportCard.totalExecuted || 0} objects executed sequentially
+                  </p>
+                </div>
+
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify({ reportCard, objectResults: dataResults }, null, 2)], { type: 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `chain-report-card-${Date.now()}.json`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                  style={{ color: 'var(--cyan)' }}
+                >
+                  📥 Export Report Card JSON
+                </button>
+              </div>
+
+              {/* Metric Cards Grid */}
+              <div className="grid-4 mb-3" style={{ gap: '1rem' }}>
+                <div className="card card-p" style={{ background: 'var(--bg-elevated)', borderLeft: '4px solid var(--accent-light)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Total Objects Run</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>
+                    {(reportCard.totalExecuted || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="card card-p" style={{ background: 'var(--bg-elevated)', borderLeft: '4px solid var(--success)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Passed Objects</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--success)', marginTop: 4 }}>
+                    {(reportCard.passedObjects || 0).toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>({reportCard.successRate || 0}%)</span>
+                  </div>
+                </div>
+
+                <div className="card card-p" style={{ background: 'var(--bg-elevated)', borderLeft: '4px solid var(--danger)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Failed Objects</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--danger)', marginTop: 4 }}>
+                    {(reportCard.failedObjects || 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="card card-p" style={{ background: 'var(--bg-elevated)', borderLeft: '4px solid var(--cyan)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Avg Chain Response Time</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--cyan)', marginTop: 4 }}>
+                    {reportCard.avgChainDurationMs || 0} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>ms</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per Step Aggregate Breakdown */}
+              {reportCard.stepStats && reportCard.stepStats.length > 0 && (
+                <div className="mb-3" style={{ background: 'var(--bg-elevated)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    📊 Step-by-Step Aggregate Summary
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))`, gap: '0.75rem' }}>
+                    {reportCard.stepStats.map((st, i) => (
+                      <div key={i} style={{ background: 'var(--bg-base)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{st.stepName || `Step ${i + 1}`}</span>
+                          <span className={`method-badge method-${(st.method || 'GET').toLowerCase()}`} style={{ fontSize: '0.62rem', padding: '1px 5px' }}>{st.method || 'GET'}</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--cyan)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{st.endpoint}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          <span>✅ {st.passCount || 0} pass</span>
+                          <span>❌ {st.failCount || 0} fail</span>
+                          <span>⏱ {st.avgDurationMs || 0} ms</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Objects Summary Table */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    📋 Objects Detailed Execution Table
+                  </h4>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="🔍 Search object/email..."
+                      value={dataSearch}
+                      onChange={e => setDataSearch(e.target.value)}
+                      style={{ width: 180, fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+                    />
+                    <select
+                      className="form-select"
+                      value={dataFilter}
+                      onChange={e => setDataFilter(e.target.value)}
+                      style={{ width: 'auto', fontSize: '0.78rem', padding: '0.35rem 0.6rem' }}
+                    >
+                      <option value="ALL">All Objects ({dataResults.length})</option>
+                      <option value="PASSED">✅ Passed Only</option>
+                      <option value="FAILED">❌ Failed Only</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-elevated)', textAlign: 'left' }}>
+                        <th style={{ padding: '0.6rem 0.75rem', width: 50 }}>#</th>
+                        <th style={{ padding: '0.6rem 0.75rem', minWidth: 200 }}>👤 Object Identifier</th>
+                        {steps.map((st, i) => (
+                          <th key={i} style={{ padding: '0.6rem 0.75rem', minWidth: 160 }}>
+                            Step {i + 1}: {st.name}
+                          </th>
+                        ))}
+                        <th style={{ padding: '0.6rem 0.75rem', minWidth: 100 }}>Total Time</th>
+                        <th style={{ padding: '0.6rem 0.75rem', minWidth: 110 }}>Overall Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dataResults
+                        .filter(r => {
+                          const ident = String(r.identifier || '').toLowerCase()
+                          if (dataSearch && !ident.includes(dataSearch.toLowerCase())) return false
+                          if (dataFilter === 'PASSED' && !r.success) return false
+                          if (dataFilter === 'FAILED' && r.success) return false
+                          return true
+                        })
+                        .map((res, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '0.55rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {res.objectIndex || (i + 1)}
+                            </td>
+                            <td style={{ padding: '0.55rem 0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {res.identifier || `Object #${i + 1}`}
+                            </td>
+                            {steps.map((st, stepIdx) => {
+                              const stepRes = res.stepResults?.find(sr => sr.stepIndex === stepIdx) || res.stepResults?.[stepIdx]
+                              if (!stepRes) {
+                                return (
+                                  <td key={stepIdx} style={{ padding: '0.55rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                                    — Skipped
+                                  </td>
+                                )
+                              }
+                              return (
+                                <td key={stepIdx} style={{ padding: '0.55rem 0.75rem' }}>
+                                  <div style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                    padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+                                    background: stepRes.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                                    border: `1px solid ${stepRes.success ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                    fontSize: '0.74rem'
+                                  }}>
+                                    <span style={{ fontWeight: 700, color: stepRes.success ? 'var(--success)' : 'var(--danger)' }}>
+                                      {stepRes.success ? `HTTP ${stepRes.status || 200}` : `ERR ${stepRes.status || ''}`}
+                                    </span>
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>⏱ {stepRes.durationMs || 0}ms</span>
+                                  </div>
+                                </td>
+                              )
+                            })}
+                            <td style={{ padding: '0.55rem 0.75rem', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              ⏱ {res.totalDurationMs || 0} ms
+                            </td>
+                            <td style={{ padding: '0.55rem 0.75rem' }}>
+                              {res.success ? (
+                                <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>✅ PASSED</span>
+                              ) : (
+                                <span className="badge badge-danger" style={{ fontSize: '0.72rem' }}>❌ FAILED</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -458,4 +458,256 @@ router.post('/run-step', async (req, res) => {
   res.json({ success: true, results, context });
 });
 
+// ── POST /api/chains/run-data-driven ────────────────────
+// Run chain sequentially for each object in objects array
+router.post('/run-data-driven', async (req, res) => {
+  try {
+    let { serverUrl, appUrl, steps, objects, limit } = req.body;
+
+    const cfg = loadConfig();
+    const selectedApp = cfg.applications?.find(a => a.id === cfg.selectedAppId) || cfg.applications?.[0] || null;
+
+    if (!serverUrl) serverUrl = selectedApp?.serverUrl || cfg.serverUrl || '';
+    if (!appUrl) appUrl = selectedApp?.appUrl || cfg.appUrl || '';
+
+    if (!serverUrl) {
+      return res.status(400).json({ success: false, error: 'serverUrl is required' });
+    }
+    if (!Array.isArray(steps) || steps.length === 0) {
+      return res.status(400).json({ success: false, error: 'steps array is required' });
+    }
+
+    // Parse or sanitize objects
+    let dataObjects = [];
+    if (Array.isArray(objects)) {
+      dataObjects = objects;
+    } else if (typeof objects === 'string') {
+      try {
+        const parsed = JSON.parse(objects);
+        dataObjects = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        return res.status(400).json({ success: false, error: 'Invalid JSON objects input' });
+      }
+    }
+
+    // Fallback to userData.json if objects not provided
+    if (dataObjects.length === 0) {
+      try {
+        const userDataPath = path.join(__dirname, '..', 'uploads', 'userData.json');
+        if (fs.existsSync(userDataPath)) {
+          const rows = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
+          if (Array.isArray(rows)) dataObjects = rows;
+        }
+      } catch {}
+    }
+
+    if (dataObjects.length === 0) {
+      return res.status(400).json({ success: false, error: 'No data objects available to run' });
+    }
+
+    const maxLimit = Number(limit) > 0 ? Math.min(Number(limit), dataObjects.length) : dataObjects.length;
+    const targetObjects = dataObjects.slice(0, maxLimit);
+
+    const startTime = Date.now();
+    const objectResults = [];
+    let passedObjects = 0;
+    let failedObjects = 0;
+
+    // Track per-step aggregates: stepIndex -> { totalMs, passCount, failCount }
+    const stepAggregates = steps.map((s, i) => ({
+      stepIndex: i,
+      stepName: s.name || `Step ${i + 1}`,
+      method: (s.method || 'GET').toUpperCase(),
+      endpoint: s.endpoint || '',
+      passCount: 0,
+      failCount: 0,
+      totalDurationMs: 0
+    }));
+
+    for (let objIdx = 0; objIdx < targetObjects.length; objIdx++) {
+      const rawObj = targetObjects[objIdx];
+      const objectContext = typeof rawObj === 'object' && rawObj !== null ? { ...rawObj } : { value: rawObj };
+
+      const identifier = objectContext.email || objectContext.username || objectContext.id || objectContext.student || `Object #${objIdx + 1}`;
+
+      const stepResults = [];
+      let objectSuccess = true;
+      let objectTotalDurationMs = 0;
+
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const method = (step.method || 'GET').toUpperCase();
+
+        const resolvedEndpoint = resolveVars(step.endpoint || '/api', objectContext);
+
+        const resolvedHeaders = {};
+        for (const [k, v] of Object.entries(step.headers || {})) {
+          if (k && v !== undefined && v !== null) {
+            resolvedHeaders[resolveVars(k, objectContext)] = resolveVars(String(v), objectContext);
+          }
+        }
+
+        const hasCookieHeader = Object.keys(resolvedHeaders).some(h => h.toLowerCase() === 'cookie');
+        if (!hasCookieHeader && objectContext.authCookie) {
+          resolvedHeaders['Cookie'] = objectContext.authCookie;
+        }
+
+        const hasAuthHeader = Object.keys(resolvedHeaders).some(h => h.toLowerCase() === 'authorization');
+        if (!hasAuthHeader) {
+          const authToken = objectContext.authorization || (objectContext.token ? `Bearer ${objectContext.token}` : null) || (objectContext.access_token ? `Bearer ${objectContext.access_token}` : null) || (objectContext.accessToken ? `Bearer ${objectContext.accessToken}` : null);
+          if (authToken) {
+            resolvedHeaders['Authorization'] = authToken;
+          }
+        }
+
+        let resolvedBody = null;
+        if (['POST', 'PUT', 'PATCH'].includes(method) && step.body) {
+          const rawBodyStr = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
+          const resolvedBodyStr = resolveVars(rawBodyStr, objectContext);
+          try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+        }
+
+        try {
+          const result = await proxyRequest({
+            serverUrl,
+            endpoint: resolvedEndpoint,
+            method,
+            headers: resolvedHeaders,
+            body: resolvedBody,
+            appUrl
+          });
+
+          const duration = result.durationMs || 0;
+          objectTotalDurationMs += duration;
+
+          if (result.json && typeof result.json === 'object') {
+            const flat = {};
+            function doFlatten(o, prefix) {
+              if (!o || typeof o !== 'object') return;
+              if (Array.isArray(o)) {
+                if (o.length > 0 && typeof o[0] === 'object') doFlatten(o[0], prefix);
+                return;
+              }
+              for (const [k, v] of Object.entries(o)) {
+                const fullKey = prefix ? `${prefix}.${k}` : k;
+                flat[fullKey] = v;
+                flat[k] = v;
+                if (typeof v === 'object' && v !== null) doFlatten(v, fullKey);
+              }
+            }
+            doFlatten(result.json, '');
+            Object.assign(objectContext, flat);
+
+            const tokenCandidate = result.json.access_token || result.json.accessToken || result.json.token || result.json.jwt || result.json.authToken || (result.json.user && (result.json.user.token || result.json.user.access_token));
+            if (tokenCandidate && typeof tokenCandidate === 'string') {
+              objectContext['token'] = tokenCandidate;
+              objectContext['access_token'] = tokenCandidate;
+              const formattedBearer = tokenCandidate.startsWith('Bearer ') ? tokenCandidate : `Bearer ${tokenCandidate}`;
+              objectContext['authorization'] = formattedBearer;
+              objectContext['bearerToken'] = formattedBearer;
+            }
+          }
+
+          const setCookie = result.headers && (result.headers['set-cookie'] || result.headers['Set-Cookie']);
+          if (setCookie) {
+            const capturedCookieStr = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
+            objectContext['authCookie'] = capturedCookieStr;
+          }
+
+          stepResults.push({
+            stepIndex: i,
+            stepName: step.name || `Step ${i + 1}`,
+            method,
+            endpoint: resolvedEndpoint,
+            status: result.status,
+            success: result.success,
+            durationMs: duration,
+            body: result.body,
+            json: result.json,
+            error: result.success ? null : `HTTP ${result.status}`
+          });
+
+          if (result.success) {
+            stepAggregates[i].passCount++;
+            stepAggregates[i].totalDurationMs += duration;
+          } else {
+            stepAggregates[i].failCount++;
+            stepAggregates[i].totalDurationMs += duration;
+            objectSuccess = false;
+            break; // Stop remaining steps for this object
+          }
+
+        } catch (err) {
+          objectSuccess = false;
+          stepAggregates[i].failCount++;
+          stepResults.push({
+            stepIndex: i,
+            stepName: step.name || `Step ${i + 1}`,
+            method,
+            endpoint: resolvedEndpoint,
+            status: null,
+            success: false,
+            durationMs: 0,
+            error: err.message
+          });
+          break;
+        }
+      }
+
+      if (objectSuccess) {
+        passedObjects++;
+      } else {
+        failedObjects++;
+      }
+
+      objectResults.push({
+        objectIndex: objIdx + 1,
+        identifier,
+        objectData: rawObj,
+        success: objectSuccess,
+        totalDurationMs: objectTotalDurationMs,
+        stepResults
+      });
+    }
+
+    const totalDurationMs = Date.now() - startTime;
+    const totalExecuted = objectResults.length;
+    const successRate = totalExecuted > 0 ? Number(((passedObjects / totalExecuted) * 100).toFixed(1)) : 0;
+    const avgChainDurationMs = totalExecuted > 0 ? Math.round(objectResults.reduce((acc, r) => acc + r.totalDurationMs, 0) / totalExecuted) : 0;
+
+    const stepStats = stepAggregates.map(sa => {
+      const stepExecuted = sa.passCount + sa.failCount;
+      return {
+        stepIndex: sa.stepIndex,
+        stepName: sa.stepName,
+        method: sa.method,
+        endpoint: sa.endpoint,
+        passCount: sa.passCount,
+        failCount: sa.failCount,
+        avgDurationMs: stepExecuted > 0 ? Math.round(sa.totalDurationMs / stepExecuted) : 0
+      };
+    });
+
+    const reportCard = {
+      totalExecuted,
+      passedObjects,
+      failedObjects,
+      successRate,
+      totalDurationMs,
+      avgChainDurationMs,
+      stepStats,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      reportCard,
+      objectResults
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message || 'Data-driven execution error' });
+  }
+});
+
 module.exports = router;
+

@@ -392,18 +392,18 @@ router.post('/run-step', async (req, res) => {
         if (sampleItem && typeof sampleItem === 'object') {
           const sampleId = sampleItem._id || sampleItem.id;
           if (sampleId) {
-            context['_id'] = sampleId;
-            capturedVarsMap['_id'] = sampleId;
+            if (!context['_id']) context['_id'] = sampleId;
+            if (!capturedVarsMap['_id']) capturedVarsMap['_id'] = sampleId;
 
-            if (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined || /test/i.test(step.name || '')) {
-              context['testId'] = sampleId;
-              context['test_id'] = sampleId;
+            if (!sampleItem.testId && (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined)) {
+              if (!context['testId']) context['testId'] = sampleId;
+              if (!context['test_id']) context['test_id'] = sampleId;
               capturedVarsMap['testId'] = sampleId;
               capturedVarsMap['test_id'] = sampleId;
             }
-            if (sampleItem.className !== undefined || sampleItem.instructorId !== undefined || /class|enroll/i.test(step.name || '')) {
-              context['classId'] = sampleId;
-              context['class_id'] = sampleId;
+            if (!sampleItem.classId && (sampleItem.className !== undefined || sampleItem.instructorId !== undefined)) {
+              if (!context['classId']) context['classId'] = sampleId;
+              if (!context['class_id']) context['class_id'] = sampleId;
               capturedVarsMap['classId'] = sampleId;
               capturedVarsMap['class_id'] = sampleId;
             }

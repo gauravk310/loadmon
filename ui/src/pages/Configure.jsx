@@ -53,6 +53,58 @@ function cleanVarKey(key) {
   return key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '')
 }
 
+function resolveEndpointPreview(endpointStr, stepResponses) {
+  if (!endpointStr || typeof endpointStr !== 'string') return ''
+  if (!endpointStr.includes('{{')) return endpointStr
+
+  const ctx = {
+    'user.id': '6a7226d7b003b9c339ea7ad2',
+    'user_id': '6a7226d7b003b9c339ea7ad2',
+    'id': '6a7226d7b003b9c339ea7ad2',
+    'email': 'student0001@example.com'
+  }
+
+  if (Array.isArray(stepResponses)) {
+    stepResponses.forEach(sr => {
+      if (sr && sr.responseJson) {
+        const item = Array.isArray(sr.responseJson) && sr.responseJson.length > 0
+          ? sr.responseJson[0]
+          : sr.responseJson
+        if (item && typeof item === 'object') {
+          Object.entries(item).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && typeof v !== 'object') {
+              const cleanK = cleanVarKey(k)
+              ctx[cleanK] = v
+              ctx[k] = v
+              ctx[`[0].${cleanK}`] = v
+              ctx[`[0].${k}`] = v
+            }
+          })
+          if (item._id) {
+            if (!item.testId && (item.testName || item.onlineExamQuestions)) {
+              if (!ctx['testId']) ctx['testId'] = item._id
+              if (!ctx['test_id']) ctx['test_id'] = item._id
+            }
+            if (!item.classId && (item.className || item.instructorId)) {
+              if (!ctx['classId']) ctx['classId'] = item._id
+              if (!ctx['class_id']) ctx['class_id'] = item._id
+            }
+          }
+        }
+      }
+    })
+  }
+
+  return endpointStr.replace(/\{\{\s*([\w.\[\]]+)\s*\}\}/g, (match, key) => {
+    if (ctx[key] !== undefined && ctx[key] !== null) return ctx[key]
+    const cleanKey = cleanVarKey(key)
+    if (ctx[cleanKey] !== undefined && ctx[cleanKey] !== null) return ctx[cleanKey]
+    const lastSeg = cleanKey.split('.').pop()
+    if (lastSeg && ctx[lastSeg] !== undefined && ctx[lastSeg] !== null) return ctx[lastSeg]
+    return match
+  })
+}
+
   const stepSavedGroups = useMemo(() => {
     const raw = baseRunResult?.baseStepSavedKeys || baseStatus?.baseStepSavedKeys || config?.baseStepSavedKeys
     if (!Array.isArray(raw)) return []
@@ -708,6 +760,7 @@ function cleanVarKey(key) {
                       ))}
                     </select>
                   </div>
+
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
                     <label className="form-label">Endpoint Path</label>
                     <SmartInput
@@ -716,6 +769,14 @@ function cleanVarKey(key) {
                       placeholder="/api/enrollment/get-all/student/{{user.id}}"
                       allVarSuggestions={allVarSuggestions}
                     />
+                    {step.endpoint && step.endpoint.includes('{{') && (
+                      <div style={{ marginTop: '5px', fontSize: '0.74rem', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: 'var(--muted)', fontWeight: 600 }}>🔗 Resolved Endpoint:</span>
+                        <span style={{ color: 'var(--cyan)', background: 'rgba(34,211,238,0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(34,211,238,0.2)' }}>
+                          {resolveEndpointPreview(step.endpoint, stepResponses)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

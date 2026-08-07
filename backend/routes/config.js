@@ -240,21 +240,23 @@ router.post('/run-base-chain', async (req, res) => {
             if (sampleItem && typeof sampleItem === 'object') {
               const sampleId = sampleItem._id || sampleItem.id;
               if (sampleId) {
-                userContext['_id'] = sampleId;
+                if (!userContext['_id']) userContext['_id'] = sampleId;
                 allCapturedKeys.add('_id');
                 stepKeySets[sIdx].add('_id');
 
-                if (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined || /test/i.test(step.name || '')) {
-                  userContext['testId'] = sampleId;
-                  userContext['test_id'] = sampleId;
+                // Only alias testId if object does not have an explicit testId field
+                if (!sampleItem.testId && (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined)) {
+                  if (!userContext['testId']) userContext['testId'] = sampleId;
+                  if (!userContext['test_id']) userContext['test_id'] = sampleId;
                   allCapturedKeys.add('testId');
                   allCapturedKeys.add('test_id');
                   stepKeySets[sIdx].add('testId');
                   stepKeySets[sIdx].add('test_id');
                 }
-                if (sampleItem.className !== undefined || sampleItem.instructorId !== undefined || /class|enroll/i.test(step.name || '')) {
-                  userContext['classId'] = sampleId;
-                  userContext['class_id'] = sampleId;
+                // Only alias classId if object does not have an explicit classId field
+                if (!sampleItem.classId && (sampleItem.className !== undefined || sampleItem.instructorId !== undefined)) {
+                  if (!userContext['classId']) userContext['classId'] = sampleId;
+                  if (!userContext['class_id']) userContext['class_id'] = sampleId;
                   allCapturedKeys.add('classId');
                   allCapturedKeys.add('class_id');
                   stepKeySets[sIdx].add('classId');

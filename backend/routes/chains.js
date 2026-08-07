@@ -536,7 +536,16 @@ router.post('/run-data-driven', async (req, res) => {
       }
     }
 
-    // Fallback to userData.json if objects not provided
+    // Fallback to baseUserSessions.json if useBaseConfig is set, otherwise userData.json
+    if (dataObjects.length === 0) {
+      try {
+        const baseSessionsPath = path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
+        if (cfg.useBaseConfig && fs.existsSync(baseSessionsPath)) {
+          const sessions = JSON.parse(fs.readFileSync(baseSessionsPath, 'utf8'));
+          if (Array.isArray(sessions) && sessions.length > 0) dataObjects = sessions;
+        }
+      } catch {}
+    }
     if (dataObjects.length === 0) {
       try {
         const userDataPath = path.join(__dirname, '..', 'uploads', 'userData.json');

@@ -38,6 +38,7 @@ export default function Configure() {
 
   const [runningBase, setRunningBase]     = useState(false)
   const [baseRunResult, setBaseRunResult] = useState(null)
+  const [baseProgress, setBaseProgress]   = useState(null)
 
 
   // Add Application Modal state
@@ -217,6 +218,7 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
         phases:          config.phases || defaultPhases(),
         useBaseConfig:   config.useBaseConfig ?? false,
         baseNumUsers:    config.baseNumUsers || 10,
+        baseArrivalRate: config.baseArrivalRate || 10,
         baseSteps:       (config.baseSteps && config.baseSteps.length > 0)
           ? config.baseSteps.map((s, idx) => ({
               id: s.id || `base_step_${idx}`,
@@ -375,9 +377,20 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
   }
 
   const handleRunBaseConfig = async () => {
+    const totalU = Number(form.baseNumUsers) || 10
+    const arrR = Number(form.baseArrivalRate) || 10
     setRunningBase(true)
     setBaseRunResult(null)
     setError(null)
+    setBaseProgress({
+      running: true,
+      totalUsers: totalU,
+      completedUsers: 0,
+      successCount: 0,
+      failedCount: 0,
+      percent: 0,
+      currentStep: 'Starting pre-authentication...'
+    })
 
     const preparedBaseSteps = (form.baseSteps || []).map(s => {
       let h = {}
@@ -399,16 +412,29 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
       }
     })
 
+    const pollInterval = setInterval(async () => {
+      try {
+        const pRes = await fetch(`${API}/config/base-progress`)
+        const pData = await pRes.json()
+        if (pData.success && pData.progress) {
+          setBaseProgress(pData.progress)
+        }
+      } catch {}
+    }, 200)
+
     try {
       const res = await runBaseConfig({
-        baseNumUsers: Number(form.baseNumUsers) || 10,
+        baseNumUsers: totalU,
+        baseArrivalRate: arrR,
         baseSteps: preparedBaseSteps
       })
       setBaseRunResult(res)
     } catch (e) {
       setBaseRunResult({ success: false, error: e.message })
+    } finally {
+      clearInterval(pollInterval)
+      setRunningBase(false)
     }
-    setRunningBase(false)
   }
 
   // ── Prepare configuration for saving ──────────────────
@@ -579,10 +605,10 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
             </button>
           </div>
 
-          {/* Top of Card: Save Number of Users */}
+          {/* Top of Card: Save Number of Users & Arrival Rate */}
           <div className="card card-p mb-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="form-group mb-0" style={{ flex: 1, minWidth: '220px' }}>
+              <div className="form-group mb-0" style={{ flex: 1, minWidth: '180px' }}>
                 <label className="form-label" htmlFor="input-base-num-users" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
                   👥 Save Number of Users
                 </label>
@@ -596,21 +622,93 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
                   onChange={e => set('baseNumUsers', Math.max(1, Number(e.target.value) || 1))}
                   placeholder="e.g. 10"
                 />
-                <span className="text-sm text-muted">Number of user accounts to run through the Base API chain and save response data for.</span>
+                <span className="text-sm text-muted">Number of user accounts to run through the Base API chain.</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="form-group mb-0" style={{ flex: 1, minWidth: '180px' }}>
+                <label className="form-label" htmlFor="input-base-arrival-rate" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                  ⚡ Arrival Rate (/s)
+                </label>
+                <input
+                  id="input-base-arrival-rate"
+                  type="number"
+                  className="form-input"
+                  min={1}
+                  max={1000}
+                  value={form.baseArrivalRate || 10}
+                  onChange={e => set('baseArrivalRate', Math.max(1, Number(e.target.value) || 1))}
+                  placeholder="e.g. 10"
+                />
+                <span className="text-sm text-muted">Authentications per second for Base API chain.</span>
+              </div>
+
+              <div className="flex items-center gap-2" style={{ alignSelf: 'flex-end', marginBottom: '1.25rem' }}>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={handleRunBaseConfig}
                   disabled={runningBase || !(form.baseSteps && form.baseSteps.length > 0)}
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontWeight: 700 }}
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontWeight: 700, whiteSpace: 'nowrap' }}
                 >
-                  {runningBase ? `⏳ Running for ${form.baseNumUsers} Users…` : `⚡ Run & Save Data for ${form.baseNumUsers} Users`}
+                  {runningBase ? `⏳ Running for ${form.baseNumUsers} Users (${form.baseArrivalRate || 10}/s)…` : `⚡ Run & Save Data for ${form.baseNumUsers} Users (${form.baseArrivalRate || 10}/s)`}
                 </button>
               </div>
             </div>
+
+            {/* Live Progress Loader when running */}
+            {runningBase && (
+              <div className="mt-3 p-4 rounded-lg animate-fade-in" style={{
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))',
+                border: '1px solid rgba(139,92,246,0.4)',
+                boxShadow: '0 4px 20px rgba(99,102,241,0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="spin text-lg" style={{ display: 'inline-block' }}>⚡</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                      Authenticating Users ({baseProgress?.completedUsers || 0} / {form.baseNumUsers} Users)
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 800, color: '#a78bfa', fontSize: '1.05rem', fontFamily: 'var(--font-mono)' }}>
+                    {baseProgress?.percent || 0}%
+                  </div>
+                </div>
+
+                {/* Animated Progress Bar */}
+                <div style={{
+                  width: '100%',
+                  height: '10px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.max(0, baseProgress?.percent || 0))}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899)',
+                    borderRadius: '6px',
+                    transition: 'width 0.2s ease-out',
+                    boxShadow: '0 0 12px rgba(139, 92, 246, 0.6)'
+                  }} />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-muted" style={{ fontWeight: 500 }}>
+                  <span>
+                    Running {form.baseSteps?.length || 0} base chain steps @ {form.baseArrivalRate || 10} arrivals/s
+                  </span>
+                  <span>
+                    <span style={{ color: 'var(--success)', fontWeight: 700 }}>✅ {baseProgress?.successCount || 0} Passed</span>
+                    {(baseProgress?.failedCount || 0) > 0 && (
+                      <span style={{ color: 'var(--danger)', fontWeight: 700, marginLeft: '0.6rem' }}>❌ {baseProgress.failedCount} Failed</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Prepared Status Summary */}
             {baseStatus?.preparedCount > 0 && (

@@ -208,11 +208,11 @@ export function AppProvider({ children }) {
     fetchBaseStatus()
   }, [fetchBaseStatus])
 
-  const runBaseConfig = useCallback(async ({ baseNumUsers, baseSteps }) => {
+  const runBaseConfig = useCallback(async ({ baseNumUsers, baseArrivalRate, baseSteps }) => {
     const res = await fetch(`${API}/config/run-base-chain`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ baseNumUsers, baseSteps })
+      body: JSON.stringify({ baseNumUsers, baseArrivalRate, baseSteps })
     })
     const data = await res.json()
     if (data.success) {

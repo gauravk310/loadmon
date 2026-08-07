@@ -355,13 +355,14 @@ router.post('/start', (req, res) => {
   const yamlPath = path.join(artilleryDir, 'runtime-test.yml');
   fs.writeFileSync(yamlPath, yamlContent);
 
-  // Clear previous results
   const resultsPath = path.join(artilleryDir, 'results.json');
   const errorLogPath = path.join(artilleryDir, 'error-logs.json');
   const studentLogPath = path.join(artilleryDir, 'student-logs.json');
+  const vuCounterPath = path.join(artilleryDir, 'vu-counter.txt');
   if (fs.existsSync(resultsPath)) fs.unlinkSync(resultsPath);
   fs.writeFileSync(errorLogPath, '');
   fs.writeFileSync(studentLogPath, '');
+  fs.writeFileSync(vuCounterPath, '0');
 
   metricsBuffer = [];
 

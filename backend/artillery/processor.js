@@ -59,20 +59,57 @@ function randomPublicIPv4() {
   return `${first}.${second}.${third}.${fourth}`;
 }
 
+const vuCounterFile = path.join(__dirname, 'vu-counter.txt');
+
+function getNextGlobalIndex() {
+  let idx = 0;
+  try {
+    if (fs.existsSync(vuCounterFile)) {
+      const raw = fs.readFileSync(vuCounterFile, 'utf8').trim();
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed >= 0) idx = parsed;
+    }
+  } catch {}
+
+  try {
+    fs.writeFileSync(vuCounterFile, String(idx + 1));
+  } catch {}
+
+  return idx;
+}
+
 // ── assignUser ────────────────────────────────────────────
 function assignUser(userContext, events, done) {
   let cfg = {};
   try { cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
   const useBaseConfig = cfg.useBaseConfig || process.env.USE_BASE_CONFIG === 'true';
 
+  // Reload baseUserSessions if needed
+  if (useBaseConfig && (!baseUserSessions || baseUserSessions.length === 0)) {
+    try {
+      if (fs.existsSync(baseSessionsFile)) {
+        baseUserSessions = JSON.parse(fs.readFileSync(baseSessionsFile, 'utf-8'));
+      }
+    } catch {}
+  }
+
+  // Reload userData if needed
+  if (!userData || userData.length === 0) {
+    try {
+      if (fs.existsSync(userDataFile)) {
+        userData = JSON.parse(fs.readFileSync(userDataFile, 'utf-8'));
+      }
+    } catch {}
+  }
+
   if (!userData.length && (!useBaseConfig || !baseUserSessions.length)) {
     return done(new Error('No user data loaded. Upload user data or run Base API Configuration.'));
   }
 
-  userIndex++;
+  const globalIndex = getNextGlobalIndex();
 
   if (userData.length > 0) {
-    const index = (userIndex - 1) % userData.length;
+    const index = globalIndex % userData.length;
     const user = userData[index];
     Object.entries(user).forEach(([key, val]) => {
       userContext.vars[key] = val;
@@ -89,7 +126,7 @@ function assignUser(userContext, events, done) {
   }
 
   if (useBaseConfig && baseUserSessions.length > 0) {
-    const bIndex = (userIndex - 1) % baseUserSessions.length;
+    const bIndex = globalIndex % baseUserSessions.length;
     const baseSession = baseUserSessions[bIndex];
     Object.entries(baseSession).forEach(([key, val]) => {
       if (val !== undefined && val !== null) {
@@ -101,7 +138,7 @@ function assignUser(userContext, events, done) {
   // Random IP to bypass rate limiting (requires trust proxy on target)
   userContext.vars.randomIP = randomPublicIPv4();
   if (!userContext.vars._vuId) {
-    userContext.vars._vuId = userContext.uuid || `VU-${userIndex}`;
+    userContext.vars._vuId = userContext.uuid || `VU-${globalIndex + 1}`;
   }
 
   return done();

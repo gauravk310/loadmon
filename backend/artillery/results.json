@@ -1,0 +1,218 @@
+{
+  "aggregate": {
+    "counters": {
+      "vusers.created_by_name.GradeMe AI Student Flow": 10,
+      "vusers.created": 10,
+      "http.requests": 10,
+      "http.codes.200": 10,
+      "http.responses": 10,
+      "http.downloaded_bytes": 0,
+      "plugins.metrics-by-endpoint./api/auth/signin (Student Login).codes.200": 10,
+      "custom.requests.success": 10,
+      "custom.requests.failure": 0,
+      "errors.Failed capture or match": 10,
+      "vusers.failed": 10
+    },
+    "rates": {
+      "http.request_rate": 2
+    },
+    "firstCounterAt": 1786120834904,
+    "firstHistogramAt": 1786120835780,
+    "lastCounterAt": 1786120839512,
+    "lastHistogramAt": 1786120839510,
+    "firstMetricAt": 1786120834904,
+    "lastMetricAt": 1786120839512,
+    "period": 1786120830000,
+    "summaries": {
+      "http.response_time": {
+        "min": 204,
+        "max": 447,
+        "count": 10,
+        "mean": 303.4,
+        "p50": 252.2,
+        "median": 252.2,
+        "p75": 354.3,
+        "p90": 432.7,
+        "p95": 432.7,
+        "p99": 432.7,
+        "p999": 432.7
+      },
+      "http.response_time.2xx": {
+        "min": 204,
+        "max": 447,
+        "count": 10,
+        "mean": 303.4,
+        "p50": 252.2,
+        "median": 252.2,
+        "p75": 354.3,
+        "p90": 432.7,
+        "p95": 432.7,
+        "p99": 432.7,
+        "p999": 432.7
+      },
+      "plugins.metrics-by-endpoint.response_time./api/auth/signin (Student Login)": {
+        "min": 204,
+        "max": 447,
+        "count": 10,
+        "mean": 303.4,
+        "p50": 252.2,
+        "median": 252.2,
+        "p75": 354.3,
+        "p90": 432.7,
+        "p95": 432.7,
+        "p99": 432.7,
+        "p999": 432.7
+      }
+    },
+    "histograms": {
+      "http.response_time": {
+        "min": 204,
+        "max": 447,
+        "count": 10,
+        "mean": 303.4,
+        "p50": 252.2,
+        "median": 252.2,
+        "p75": 354.3,
+        "p90": 432.7,
+        "p95": 432.7,
+        "p99": 432.7,
+        "p999": 432.7
+      },
+      "http.response_time.2xx": {
+        "min": 204,
+        "max": 447,
+        "count": 10,
+        "mean": 303.4,
+        "p50": 252.2,
+        "median": 252.2,
+        "p75": 354.3,
+        "p90": 432.7,
+        "p95": 432.7,
+        "p99": 432.7,
+        "p999": 432.7
+      },
+      "plugins.metrics-by-endpoint.response_time./api/auth/signin (Student Login)": {
+        "min": 204,
+        "max": 447,
+        "count": 10,
+        "mean": 303.4,
+        "p50": 252.2,
+        "median": 252.2,
+        "p75": 354.3,
+        "p90": 432.7,
+        "p95": 432.7,
+        "p99": 432.7,
+        "p999": 432.7
+      }
+    }
+  },
+  "intermediate": [
+    {
+      "counters": {
+        "vusers.created_by_name.GradeMe AI Student Flow": 10,
+        "vusers.created": 10,
+        "http.requests": 10,
+        "http.codes.200": 10,
+        "http.responses": 10,
+        "plugins.metrics-by-endpoint./api/auth/signin (Student Login).codes.200": 10,
+        "custom.requests.success": 10,
+        "custom.requests.failure": 0,
+        "errors.Failed capture or match": 10,
+        "vusers.failed": 10
+      },
+      "rates": {
+        "http.request_rate": 2
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1786120834904,
+      "firstHistogramAt": 1786120835780,
+      "lastCounterAt": 1786120839512,
+      "lastHistogramAt": 1786120839510,
+      "firstMetricAt": 1786120834904,
+      "lastMetricAt": 1786120839512,
+      "period": "1786120830000",
+      "summaries": {
+        "http.response_time": {
+          "min": 204,
+          "max": 447,
+          "count": 10,
+          "mean": 303.4,
+          "p50": 252.2,
+          "median": 252.2,
+          "p75": 354.3,
+          "p90": 432.7,
+          "p95": 432.7,
+          "p99": 432.7,
+          "p999": 432.7
+        },
+        "http.response_time.2xx": {
+          "min": 204,
+          "max": 447,
+          "count": 10,
+          "mean": 303.4,
+          "p50": 252.2,
+          "median": 252.2,
+          "p75": 354.3,
+          "p90": 432.7,
+          "p95": 432.7,
+          "p99": 432.7,
+          "p999": 432.7
+        },
+        "plugins.metrics-by-endpoint.response_time./api/auth/signin (Student Login)": {
+          "min": 204,
+          "max": 447,
+          "count": 10,
+          "mean": 303.4,
+          "p50": 252.2,
+          "median": 252.2,
+          "p75": 354.3,
+          "p90": 432.7,
+          "p95": 432.7,
+          "p99": 432.7,
+          "p999": 432.7
+        }
+      },
+      "histograms": {
+        "http.response_time": {
+          "min": 204,
+          "max": 447,
+          "count": 10,
+          "mean": 303.4,
+          "p50": 252.2,
+          "median": 252.2,
+          "p75": 354.3,
+          "p90": 432.7,
+          "p95": 432.7,
+          "p99": 432.7,
+          "p999": 432.7
+        },
+        "http.response_time.2xx": {
+          "min": 204,
+          "max": 447,
+          "count": 10,
+          "mean": 303.4,
+          "p50": 252.2,
+          "median": 252.2,
+          "p75": 354.3,
+          "p90": 432.7,
+          "p95": 432.7,
+          "p99": 432.7,
+          "p999": 432.7
+        },
+        "plugins.metrics-by-endpoint.response_time./api/auth/signin (Student Login)": {
+          "min": 204,
+          "max": 447,
+          "count": 10,
+          "mean": 303.4,
+          "p50": 252.2,
+          "median": 252.2,
+          "p75": 354.3,
+          "p90": 432.7,
+          "p95": 432.7,
+          "p99": 432.7,
+          "p999": 432.7
+        }
+      }
+    }
+  ]
+}

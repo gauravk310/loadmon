@@ -70,6 +70,21 @@ function getFallbackStepSavedKeys(config) {
   return [];
 }
 
+let baseProgress = {
+  running: false,
+  totalUsers: 0,
+  completedUsers: 0,
+  successCount: 0,
+  failedCount: 0,
+  percent: 0,
+  currentStep: ''
+};
+
+// ── GET /api/config/base-progress ─────────────────────────
+router.get('/base-progress', (req, res) => {
+  res.json({ success: true, progress: baseProgress });
+});
+
 // ── GET /api/config/base-status ───────────────────────────
 router.get('/base-status', (req, res) => {
   try {
@@ -88,6 +103,7 @@ router.get('/base-status', (req, res) => {
       success: true,
       useBaseConfig: !!config.useBaseConfig,
       baseNumUsers: config.baseNumUsers || 10,
+      baseArrivalRate: config.baseArrivalRate || 10,
       baseStepsCount: config.baseSteps ? config.baseSteps.length : 0,
       baseSavedKeys: cleanVarKeysList(config.baseSavedKeys || sampleKeys),
       baseStepSavedKeys: getFallbackStepSavedKeys(config),
@@ -100,11 +116,44 @@ router.get('/base-status', (req, res) => {
   }
 });
 
+// ── GET /api/config/base-sessions ─────────────────────────
+router.get('/base-sessions', (req, res) => {
+  try {
+    const baseSessionsPath = path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
+    if (!fs.existsSync(baseSessionsPath)) {
+      return res.json({ success: false, exists: false, error: 'No base user sessions saved yet' });
+    }
+    const sessions = JSON.parse(fs.readFileSync(baseSessionsPath, 'utf8'));
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+    if (!Array.isArray(sessions) || sessions.length === 0) {
+      return res.json({ success: false, exists: false, error: 'Base user sessions file is empty' });
+    }
+
+    const sample = sessions[0] || {};
+    const allKeys = Object.keys(sample);
+    const keyPriority = ['email', 'user.email', 'id', 'user.id', 'user_id', 'studentId', '_id', 'classId', 'testId', 'authCookie', 'token', 'authorization'];
+    const columns = Array.from(new Set([...keyPriority.filter(k => k in sample), ...allKeys.filter(k => !k.startsWith('[0].'))])).slice(0, 15);
+
+    res.json({
+      success: true,
+      exists: true,
+      rowCount: sessions.length,
+      preparedAt: config.basePreparedAt || null,
+      columns,
+      sessions: sessions.slice(0, 500)
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ── POST /api/config/run-base-chain ──────────────────────
 router.post('/run-base-chain', async (req, res) => {
   try {
-    const { baseNumUsers = 10, baseSteps = [] } = req.body;
+    const { baseNumUsers = 10, baseArrivalRate = 10, baseSteps = [] } = req.body;
     const numUsers = Math.max(1, Math.min(1000, Number(baseNumUsers) || 10));
+    const arrRate = Math.max(1, Math.min(1000, Number(baseArrivalRate) || 10));
 
     if (!Array.isArray(baseSteps) || baseSteps.length === 0) {
       return res.status(400).json({ success: false, error: 'At least one step is required in Base API Configuration' });
@@ -134,7 +183,6 @@ router.post('/run-base-chain', async (req, res) => {
       try { userData = JSON.parse(fs.readFileSync(userDataPath, 'utf8')); } catch {}
     }
 
-    const baseUserSessions = [];
     const allCapturedKeys = new Set(['authCookie', 'token', 'access_token', 'authorization']);
     const stepKeySets = baseSteps.map(() => new Set());
     const baseStepResponses = [];
@@ -142,7 +190,17 @@ router.post('/run-base-chain', async (req, res) => {
     let failedUserCount = 0;
     const errorDetails = [];
 
-    for (let u = 0; u < numUsers; u++) {
+    baseProgress = {
+      running: true,
+      totalUsers: numUsers,
+      completedUsers: 0,
+      successCount: 0,
+      failedCount: 0,
+      percent: 0,
+      currentStep: 'Authenticating user sessions...'
+    };
+
+    const runUserSession = async (u) => {
       let initialUserVars = {};
       if (userData.length > 0) {
         initialUserVars = { ...userData[u % userData.length] };
@@ -244,7 +302,6 @@ router.post('/run-base-chain', async (req, res) => {
                 allCapturedKeys.add('_id');
                 stepKeySets[sIdx].add('_id');
 
-                // Only alias testId if object does not have an explicit testId field
                 if (!sampleItem.testId && (sampleItem.testName !== undefined || sampleItem.onlineExamQuestions !== undefined || sampleItem.isOnlineExamination !== undefined)) {
                   if (!userContext['testId']) userContext['testId'] = sampleId;
                   if (!userContext['test_id']) userContext['test_id'] = sampleId;
@@ -253,7 +310,6 @@ router.post('/run-base-chain', async (req, res) => {
                   stepKeySets[sIdx].add('testId');
                   stepKeySets[sIdx].add('test_id');
                 }
-                // Only alias classId if object does not have an explicit classId field
                 if (!sampleItem.classId && (sampleItem.className !== undefined || sampleItem.instructorId !== undefined)) {
                   if (!userContext['classId']) userContext['classId'] = sampleId;
                   if (!userContext['class_id']) userContext['class_id'] = sampleId;
@@ -338,14 +394,42 @@ router.post('/run-base-chain', async (req, res) => {
         }
       }
 
+      baseProgress.completedUsers++;
       if (userSuccess) {
+        baseProgress.successCount++;
+      } else {
+        baseProgress.failedCount++;
+      }
+      baseProgress.percent = Math.min(100, Math.round((baseProgress.completedUsers / numUsers) * 100));
+
+      return { userContext, userSuccess };
+    };
+
+    const userPromises = [];
+    const intervalMs = Math.round(1000 / arrRate);
+
+    for (let u = 0; u < numUsers; u++) {
+      if (u > 0 && arrRate > 0) {
+        await new Promise(r => setTimeout(r, intervalMs));
+      }
+      userPromises.push(runUserSession(u));
+    }
+
+    const userResults = await Promise.all(userPromises);
+
+    const baseUserSessions = [];
+    for (let u = 0; u < userResults.length; u++) {
+      const resItem = userResults[u];
+      if (resItem.userSuccess) {
         successUserCount++;
       } else {
         failedUserCount++;
       }
-
-      baseUserSessions.push(userContext);
+      baseUserSessions.push(resItem.userContext);
     }
+
+    baseProgress.running = false;
+    baseProgress.percent = 100;
 
     // Save baseUserSessions.json
     const baseSessionsPath = path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
@@ -363,6 +447,7 @@ router.post('/run-base-chain', async (req, res) => {
     const updatedConfig = {
       ...config,
       baseNumUsers: numUsers,
+      baseArrivalRate: arrRate,
       baseSteps,
       baseSavedKeys: savedKeysList,
       baseStepSavedKeys,
@@ -374,7 +459,7 @@ router.post('/run-base-chain', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Executed Base API Chain for ${numUsers} users: ${successUserCount} succeeded, ${failedUserCount} failed.`,
+      message: `Executed Base API Chain for ${numUsers} users at ${arrRate}/s arrival rate: ${successUserCount} succeeded, ${failedUserCount} failed.`,
       preparedCount: baseUserSessions.length,
       successUserCount,
       failedUserCount,

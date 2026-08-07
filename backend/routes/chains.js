@@ -462,7 +462,7 @@ router.post('/run-step', async (req, res) => {
 // Run chain sequentially for each object in objects array
 router.post('/run-data-driven', async (req, res) => {
   try {
-    let { serverUrl, appUrl, steps, objects, limit } = req.body;
+    let { serverUrl, appUrl, steps, objects, limit, duration, arrivalRate } = req.body;
 
     const cfg = loadConfig();
     const selectedApp = cfg.applications?.find(a => a.id === cfg.selectedAppId) || cfg.applications?.[0] || null;
@@ -506,7 +506,14 @@ router.post('/run-data-driven', async (req, res) => {
     }
 
     const maxLimit = Number(limit) > 0 ? Math.min(Number(limit), dataObjects.length) : dataObjects.length;
-    const targetObjects = dataObjects.slice(0, maxLimit);
+    const dur = Number(duration) > 0 ? Number(duration) : 0;
+    const arrRate = Number(arrivalRate) > 0 ? Number(arrivalRate) : 0;
+
+    let targetCount = maxLimit;
+    if (dur > 0 && arrRate > 0) {
+      targetCount = Math.min(maxLimit, Math.round(dur * arrRate));
+    }
+    const targetObjects = dataObjects.slice(0, targetCount);
 
     const startTime = Date.now();
     const objectResults = [];
@@ -525,6 +532,11 @@ router.post('/run-data-driven', async (req, res) => {
     }));
 
     for (let objIdx = 0; objIdx < targetObjects.length; objIdx++) {
+      if (objIdx > 0 && arrRate > 0) {
+        const pacingDelayMs = Math.round(1000 / arrRate);
+        await new Promise(resolve => setTimeout(resolve, pacingDelayMs));
+      }
+
       const rawObj = targetObjects[objIdx];
       const objectContext = typeof rawObj === 'object' && rawObj !== null ? { ...rawObj } : { value: rawObj };
 

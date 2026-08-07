@@ -231,6 +231,8 @@ export default function ChainTesting() {
   const [extractedCount, setExtractedCount] = useState(0)
   const [extractError, setExtractError] = useState(null)
   const [objectLimit, setObjectLimit] = useState(5)
+  const [dataDuration, setDataDuration] = useState(5)
+  const [dataArrivalRate, setDataArrivalRate] = useState(1)
   const [dataDrivenRunning, setDataDrivenRunning] = useState(false)
   const [dataDrivenError, setDataDrivenError] = useState(null)
   const [reportCard, setReportCard] = useState(null)
@@ -315,6 +317,12 @@ export default function ChainTesting() {
       return
     }
 
+    const totalToRun = (Number(dataDuration) || 0) * (Number(dataArrivalRate) || 0)
+    if (totalToRun > Number(objectLimit)) {
+      setDataDrivenError(`Duration (${dataDuration}s) × Arrival /s (${dataArrivalRate}) = ${totalToRun} objects exceeds limit of ${objectLimit}.`)
+      return
+    }
+
     setDataDrivenError(null)
     setDataDrivenRunning(true)
 
@@ -335,7 +343,9 @@ export default function ChainTesting() {
           appUrl,
           steps: stepsPayload,
           objects: objs,
-          limit: Number(objectLimit) || objs.length
+          limit: Number(objectLimit) || objs.length,
+          duration: Number(dataDuration),
+          arrivalRate: Number(dataArrivalRate)
         })
       })
 
@@ -877,45 +887,93 @@ export default function ChainTesting() {
               />
             </div>
 
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  className="btn btn-primary"
-                  onClick={handleExtractData}
-                >
-                  🔍 Extract Data
-                </button>
+            {(() => {
+              const calcCount = (Number(dataDuration) || 0) * (Number(dataArrivalRate) || 0)
+              const isExceeded = calcCount > (Number(objectLimit) || 0)
+              return (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleExtractData}
+                    >
+                      🔍 Extract Data
+                    </button>
 
-                {extractedCount > 0 && (
-                  <div className="flex items-center gap-2">
-                    <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Limit Objects to Run:
-                    </label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      style={{ width: 100, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
-                      value={objectLimit}
-                      onChange={e => setObjectLimit(Math.max(1, Number(e.target.value)))}
-                      min={1}
-                      max={extractedCount}
-                    />
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      out of {extractedCount.toLocaleString()} objects
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Limit Objects to Run:
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ width: 85, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                        value={objectLimit}
+                        onChange={e => setObjectLimit(Math.max(1, Number(e.target.value)))}
+                        min={1}
+                        max={extractedCount || undefined}
+                      />
+                      {extractedCount > 0 && (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          out of {extractedCount.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Duration (s):
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ width: 75, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                        value={dataDuration}
+                        onChange={e => setDataDuration(Math.max(1, Number(e.target.value)))}
+                        min={1}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        Arrival /s:
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ width: 75, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                        value={dataArrivalRate}
+                        onChange={e => setDataArrivalRate(Math.max(1, Number(e.target.value)))}
+                        min={1}
+                      />
+                    </div>
+
+                    <div style={{
+                      fontSize: '0.78rem',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isExceeded ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.12)',
+                      border: `1px solid ${isExceeded ? 'var(--danger)' : 'rgba(16, 185, 129, 0.3)'}`,
+                      color: isExceeded ? 'var(--danger)' : 'var(--success)',
+                      fontWeight: 600
+                    }}>
+                      {isExceeded
+                        ? `⚠️ ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} > Limit (${objectLimit})`
+                        : `Total: ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} / ${objectLimit} max`}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <button
-                className="btn btn-success btn-lg"
-                onClick={handleRunDataDrivenChain}
-                disabled={dataDrivenRunning || (!extractedObjects.length && !jsonInput.trim())}
-                style={{ minWidth: 200 }}
-              >
-                {dataDrivenRunning ? '⏳ Executing Objects…' : '▶️ Run Data-Driven Chain'}
-              </button>
-            </div>
+                  <button
+                    className="btn btn-success btn-lg"
+                    onClick={handleRunDataDrivenChain}
+                    disabled={dataDrivenRunning || (!extractedObjects.length && !jsonInput.trim()) || isExceeded}
+                    style={{ minWidth: 200 }}
+                  >
+                    {dataDrivenRunning ? '⏳ Executing Objects…' : '▶️ Run Data-Driven Chain'}
+                  </button>
+                </div>
+              )
+            })()}
 
             {dataDrivenError && (
               <div className="card card-p mt-3" style={{ borderColor: 'var(--danger)', background: 'var(--danger-dim)', color: 'var(--danger)', padding: '0.6rem 1rem', fontSize: '0.82rem' }}>

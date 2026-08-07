@@ -265,8 +265,37 @@ export default function ChainTesting() {
   const [executing, setExecuting] = useState(false)
   const [execError, setExecError] = useState(null)
 
+  const [baseUserSessionsData, setBaseUserSessionsData] = useState(null)
+  const [baseStatusData, setBaseStatusData] = useState(null)
+  const [baseLoadMessage, setBaseLoadMessage] = useState(null)
+
+  const handleLoadBaseUserSessions = async () => {
+    setExtractError(null)
+    setBaseLoadMessage(null)
+    try {
+      const res = await fetch(`${API}/config/base-sessions`)
+      const data = await res.json()
+      if (data.success && data.exists && Array.isArray(data.sessions) && data.sessions.length > 0) {
+        const jsonStr = JSON.stringify(data.sessions, null, 2)
+        setJsonInput(jsonStr)
+        setExtractedObjects(data.sessions)
+        setExtractedCount(data.sessions.length)
+        setBaseUserSessionsData(data.sessions)
+        setBaseLoadMessage(`🔐 Loaded ${data.sessions.length} Authenticated User Sessions`)
+        if (!objectLimit || objectLimit > data.sessions.length) {
+          setObjectLimit(Math.min(5, data.sessions.length))
+        }
+      } else {
+        setExtractError(data.error || 'No authenticated base user sessions found. Please run Base API Configuration first.')
+      }
+    } catch (err) {
+      setExtractError(`Failed to load base user sessions: ${err.message}`)
+    }
+  }
+
   const handleLoadUserDataJson = async () => {
     setExtractError(null)
+    setBaseLoadMessage(null)
     try {
       const res = await fetch(`${API}/upload/raw`)
       const data = await res.json()
@@ -408,13 +437,27 @@ export default function ChainTesting() {
     }
   }, [chains, selectedChainId])
 
-  // Fetch available data manager users
+  // Fetch available data manager users & base config sessions
   useEffect(() => {
     fetch(`${API}/upload/preview`)
       .then(r => r.json())
       .then(d => {
         if (d.success && d.exists && typeof d.rowCount === 'number') {
           setAvailableUsersCount(d.rowCount)
+        }
+      })
+      .catch(() => {})
+
+    fetch(`${API}/config/base-status`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setBaseStatusData(d) })
+      .catch(() => {})
+
+    fetch(`${API}/config/base-sessions`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.exists && Array.isArray(d.sessions)) {
+          setBaseUserSessionsData(d.sessions)
         }
       })
       .catch(() => {})
@@ -450,9 +493,44 @@ export default function ChainTesting() {
     return found || activeConfigChain
   }, [selectedChainId, chains, activeConfigChain])
 
-  // Collect variable suggestions from previous steps
+  // Collect variable suggestions from authenticated user sessions + previous steps
   const getAllVarSuggestions = useCallback((upToStepIndex) => {
     const suggestions = []
+    const addedKeys = new Set()
+
+    // 1. Authenticated User Saved Keys (from baseUserSessions & baseStatusData)
+    const authKeys = new Set(['email', 'password', 'token', 'access_token', 'authorization', 'authCookie', 'user.id', 'user.email', 'studentId', 'classId', 'testId'])
+
+    if (baseStatusData && Array.isArray(baseStatusData.baseSavedKeys)) {
+      baseStatusData.baseSavedKeys.forEach(k => {
+        if (k) authKeys.add(cleanVarKey(k))
+      })
+    }
+
+    if (baseUserSessionsData && baseUserSessionsData.length > 0 && typeof baseUserSessionsData[0] === 'object') {
+      const keys = flattenObjectKeys(baseUserSessionsData[0])
+      keys.forEach(k => {
+        if (k && !k.startsWith('[0].')) authKeys.add(cleanVarKey(k))
+      })
+    }
+
+    authKeys.forEach(rawKey => {
+      const k = cleanVarKey(rawKey)
+      if (k && !addedKeys.has(k)) {
+        addedKeys.add(k)
+        const isAuth = ['token', 'access_token', 'jwt', 'authCookie', 'authorization', 'bearerToken', 'email', 'password'].includes(k)
+        suggestions.push({
+          key: k,
+          stepNum: 0,
+          stepName: 'Authenticated User Data',
+          stepLabel: 'Authenticated User Session',
+          isAuth,
+          isCredential: true
+        })
+      }
+    })
+
+    // 2. Previous Steps In Current Chain
     for (let i = 0; i < upToStepIndex; i++) {
       const step = steps[i]
       if (step.capturedData) {
@@ -471,15 +549,16 @@ export default function ChainTesting() {
       }
       if (step.responseKeys && step.responseKeys.length > 0) {
         step.responseKeys.forEach(key => {
-          if (!suggestions.some(s => s.key === key)) {
-            const isAuth = ['token', 'access_token', 'jwt', 'authCookie', 'authorization', 'bearerToken'].includes(key)
-            suggestions.push({ key, stepNum: i + 1, stepName: step.name, isAuth })
+          const cleanK = cleanVarKey(key)
+          if (!suggestions.some(s => s.key === cleanK && s.stepNum === i + 1)) {
+            const isAuth = ['token', 'access_token', 'jwt', 'authCookie', 'authorization', 'bearerToken'].includes(cleanK)
+            suggestions.push({ key: cleanK, stepNum: i + 1, stepName: step.name, isAuth })
           }
         })
       }
     }
     return suggestions
-  }, [steps])
+  }, [steps, baseStatusData, baseUserSessionsData])
 
   // ── Step CRUD ─────────────────────────────────────────────
   const updateStep = (stepId, updates) => {
@@ -869,14 +948,31 @@ export default function ChainTesting() {
                 </p>
               </div>
 
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={handleLoadUserDataJson}
-                style={{ color: 'var(--accent-light)', borderColor: 'rgba(99, 102, 241, 0.4)' }}
-              >
-                📂 Auto-Load from uploaded userData.json
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  id="btn-load-auth-sessions"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleLoadBaseUserSessions}
+                  style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  🔐 Auto-Load Authenticated User Data ({baseUserSessionsData ? baseUserSessionsData.length : 0})
+                </button>
+                <button
+                  id="btn-load-user-data"
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleLoadUserDataJson}
+                  style={{ color: 'var(--accent-light)', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+                >
+                  📂 Load Uploaded Dataset (userData.json)
+                </button>
+              </div>
             </div>
+
+            {baseLoadMessage && (
+              <div className="card card-p mb-2" style={{ borderColor: 'var(--success)', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>
+                {baseLoadMessage}
+              </div>
+            )}
 
             {extractError && (
               <div className="card card-p mb-2" style={{ borderColor: 'var(--danger)', background: 'var(--danger-dim)', color: 'var(--danger)', padding: '0.5rem 1rem', fontSize: '0.82rem' }}>
@@ -1005,9 +1101,45 @@ export default function ChainTesting() {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.4rem' }}>
                   {extractedObjects.slice(0, 3).map((obj, i) => (
-                    <div key={i} style={{ background: 'var(--bg-elevated)', padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', minWidth: 220 }}>
-                      <div style={{ color: 'var(--accent-light)', fontWeight: 700, marginBottom: 3 }}>Object #{i + 1}</div>
-                      <div>{JSON.stringify(obj, null, 2)}</div>
+                    <div
+                      key={i}
+                      style={{
+                        flex: '1 1 0px',
+                        minWidth: 240,
+                        background: 'var(--bg-elevated)',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-mono)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      <div style={{ color: 'var(--accent-light)', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>Object #{i + 1}</span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                          {Object.keys(obj || {}).length} fields
+                        </span>
+                      </div>
+                      <pre
+                        style={{
+                          margin: 0,
+                          maxHeight: 200,
+                          overflowY: 'auto',
+                          fontSize: '0.73rem',
+                          lineHeight: 1.4,
+                          color: 'var(--text-primary)',
+                          background: 'var(--bg-base)',
+                          padding: '0.5rem',
+                          borderRadius: 4,
+                          border: '1px solid var(--border)',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-all'
+                        }}
+                      >
+                        {JSON.stringify(obj, null, 2)}
+                      </pre>
                     </div>
                   ))}
                 </div>
@@ -1156,17 +1288,17 @@ export default function ChainTesting() {
                         </div>
                       )}
 
-                      {/* Variable preview from previous steps */}
-                      {idx > 0 && varSuggestions.length > 0 && (
+                      {/* Variable preview from previous steps & authenticated users */}
+                      {varSuggestions.length > 0 && (
                         <div className="chain-vars-preview">
                           <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--cyan)', marginBottom: '0.5rem' }}>
-                            🔁 Linked Variables Available from Previous Steps
+                            🔁 Saved Variables Available ({varSuggestions.filter(s => s.stepNum === 0).length > 0 ? '🔐 Authenticated Sessions & ' : ''}Previous Steps)
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                             {varSuggestions.map((s, i) => (
-                              <span key={i} className="var-chip" title={`From Step ${s.stepNum}: ${s.stepName}`}>
+                              <span key={i} className="var-chip" title={`From ${s.stepLabel || s.stepName}`}>
                                 {`{{${s.key}}}`}
-                                <span className="var-chip-source">S{s.stepNum}</span>
+                                <span className="var-chip-source">{s.stepNum === 0 ? '🔐 Base' : `S${s.stepNum}`}</span>
                               </span>
                             ))}
                           </div>

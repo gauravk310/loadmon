@@ -296,20 +296,30 @@ router.post('/run-step', async (req, res) => {
     return res.status(400).json({ success: false, error: 'valid stepIndex is required' });
   }
 
-  // Load default user variables from uploads/userData.json if available
+  // Load default user variables from uploads/userData.json and uploads/baseUserSessions.json if available
   let defaultUserVars = {};
   try {
     const userDataPath = path.join(__dirname, '..', 'uploads', 'userData.json');
     if (fs.existsSync(userDataPath)) {
       const rows = JSON.parse(fs.readFileSync(userDataPath, 'utf8'));
       if (Array.isArray(rows) && rows.length > 0) {
-        defaultUserVars = rows[0];
+        defaultUserVars = { ...rows[0] };
+      }
+    }
+  } catch {}
+
+  try {
+    const baseSessionsPath = path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
+    if (fs.existsSync(baseSessionsPath)) {
+      const sessions = JSON.parse(fs.readFileSync(baseSessionsPath, 'utf8'));
+      if (Array.isArray(sessions) && sessions.length > 0) {
+        defaultUserVars = { ...defaultUserVars, ...sessions[0] };
       }
     }
   } catch {}
 
   const results = [];
-  // Context accumulates variables from user data + previous step responses
+  // Context accumulates variables from user data + authenticated user sessions + previous step responses
   let context = { ...defaultUserVars, ...initContext };
 
   // Execute steps 0..stepIndex sequentially
@@ -536,11 +546,11 @@ router.post('/run-data-driven', async (req, res) => {
       }
     }
 
-    // Fallback to baseUserSessions.json if useBaseConfig is set, otherwise userData.json
+    // Fallback to baseUserSessions.json or userData.json if dataObjects is empty
     if (dataObjects.length === 0) {
       try {
         const baseSessionsPath = path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
-        if (cfg.useBaseConfig && fs.existsSync(baseSessionsPath)) {
+        if (fs.existsSync(baseSessionsPath)) {
           const sessions = JSON.parse(fs.readFileSync(baseSessionsPath, 'utf8'));
           if (Array.isArray(sessions) && sessions.length > 0) dataObjects = sessions;
         }

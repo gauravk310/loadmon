@@ -32,5 +32,46 @@
       "arrivalRate": 5,
       "name": "Quick Test"
     }
-  ]
+  ],
+  "headersText": "{\n  \"Content-Type\": \"application/json\"\n}",
+  "bodyText": "{\n  \"email\": \"{{ email }}\",\n  \"password\": \"{{ password }}\"\n}",
+  "useBaseConfig": false,
+  "baseNumUsers": 5,
+  "baseSteps": [
+    {
+      "id": "step_1",
+      "name": "Sign In",
+      "method": "POST",
+      "endpoint": "/api/auth/signin",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "headersText": "{\n  \"Content-Type\": \"application/json\"\n}",
+      "body": {
+        "email": "{{ email }}",
+        "password": "{{ password }}"
+      },
+      "bodyText": "{\n  \"email\": \"{{ email }}\",\n  \"password\": \"{{ password }}\"\n}",
+      "think": 1
+    }
+  ],
+  "baseSavedKeys": [
+    "authCookie",
+    "token",
+    "access_token",
+    "authorization",
+    "success",
+    "message",
+    "user",
+    "user.id",
+    "user.firstName",
+    "user.lastName",
+    "user.email",
+    "id",
+    "firstName",
+    "lastName",
+    "email"
+  ],
+  "basePreparedCount": 5,
+  "basePreparedAt": "2026-08-07T07:47:05.385Z"
 }

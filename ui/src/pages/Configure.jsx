@@ -49,11 +49,16 @@ export default function Configure() {
   const [addError, setAddError]             = useState(null)
 
   const allVarSuggestions = useMemo(() => {
-    const keys = baseStatus?.baseSavedKeys || config?.baseSavedKeys || []
-    return keys.map(k => ({
+    const defaultKeys = [
+      'email', 'password', 'token', 'access_token', 'authorization',
+      'authCookie', 'id', 'user.id', 'user_id', 'userId', 'studentId', 'classId', 'testId'
+    ]
+    const serverKeys = baseStatus?.baseSavedKeys || config?.baseSavedKeys || []
+    const combined = Array.from(new Set([...defaultKeys, ...serverKeys]))
+    return combined.map(k => ({
       key: k,
       isAuth: /token|cookie|auth/i.test(k),
-      stepName: 'Base Config Response'
+      stepName: serverKeys.includes(k) ? 'Saved Variable' : 'User Credential / Variable'
     }))
   }, [baseStatus?.baseSavedKeys, config?.baseSavedKeys])
 
@@ -493,17 +498,17 @@ export default function Configure() {
 
             {/* Prepared Status Summary */}
             {baseStatus?.preparedCount > 0 && (
-              <div className="mt-3 p-2 rounded" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.88rem' }}>
+              <div className="mt-3 p-3 rounded" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem' }}>
                     ✅ {baseStatus.preparedCount} User Sessions Authenticated &amp; Saved
-                    {baseStatus.preparedAt && <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '0.5rem' }}>({new Date(baseStatus.preparedAt).toLocaleTimeString()})</span>}
+                    {baseStatus.preparedAt && <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '0.5rem', fontWeight: 400 }}>({new Date(baseStatus.preparedAt).toLocaleTimeString()})</span>}
                   </div>
                   {baseStatus.baseSavedKeys && baseStatus.baseSavedKeys.length > 0 && (
-                    <div className="flex gap-1 flex-wrap align-center">
-                      <span className="text-sm text-muted">Available Variables:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Available Variables:</span>
                       {baseStatus.baseSavedKeys.slice(0, 10).map((k, i) => (
-                        <span key={i} className="badge badge-accent" style={{ fontSize: '0.72rem' }}>
+                        <span key={i} className="badge badge-accent mono" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>
                           {`{{${k}}}`}
                         </span>
                       ))}
@@ -520,7 +525,9 @@ export default function Configure() {
             {baseRunResult && (
               <div className="mt-3 card card-p" style={{
                 borderColor: baseRunResult.success ? 'var(--success)' : 'var(--danger)',
-                background: baseRunResult.success ? 'rgba(16,185,129,0.06)' : 'var(--danger-dim)'
+                background: baseRunResult.success ? 'rgba(16,185,129,0.06)' : 'var(--danger-dim)',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word'
               }}>
                 <div style={{ fontWeight: 700, color: baseRunResult.success ? 'var(--success)' : 'var(--danger)', marginBottom: '0.25rem' }}>
                   {baseRunResult.success ? '✅ Base Config Chain Execution Completed' : '❌ Base Config Execution Failed'}
@@ -529,7 +536,7 @@ export default function Configure() {
                   {baseRunResult.message || baseRunResult.error}
                 </div>
                 {baseRunResult.savedKeys && baseRunResult.savedKeys.length > 0 && (
-                  <div className="mt-2 text-sm">
+                  <div className="mt-2 text-sm" style={{ wordBreak: 'break-word' }}>
                     <strong>Saved Variables ({baseRunResult.savedKeys.length}):</strong>{' '}
                     <span className="mono" style={{ color: 'var(--cyan)' }}>
                       {baseRunResult.savedKeys.map(k => `{{${k}}}`).join(', ')}
@@ -537,7 +544,7 @@ export default function Configure() {
                   </div>
                 )}
                 {baseRunResult.errorDetails && baseRunResult.errorDetails.length > 0 && (
-                  <div className="mt-2 text-sm" style={{ color: 'var(--danger)' }}>
+                  <div className="mt-2 text-sm" style={{ color: 'var(--danger)', wordBreak: 'break-word' }}>
                     <strong>Errors:</strong>
                     <ul>
                       {baseRunResult.errorDetails.map((errStr, idx) => (
@@ -592,11 +599,11 @@ export default function Configure() {
                   </div>
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
                     <label className="form-label">Endpoint Path</label>
-                    <input
-                      className="form-input"
+                    <SmartInput
                       value={step.endpoint || ''}
-                      onChange={e => updateBaseStep(sIdx, 'endpoint', e.target.value)}
-                      placeholder="/api/auth/signin"
+                      onChange={val => updateBaseStep(sIdx, 'endpoint', val)}
+                      placeholder="/api/enrollment/get-all/student/{{user.id}}"
+                      allVarSuggestions={allVarSuggestions}
                     />
                   </div>
                 </div>
@@ -604,26 +611,26 @@ export default function Configure() {
                 <div className="grid-2">
                   <div className="form-group">
                     <label className="form-label">Headers (JSON)</label>
-                    <textarea
-                      className="form-input mono"
+                    <SmartTextarea
                       rows={3}
                       style={{ fontSize: '0.8rem' }}
                       value={step.headersText || ''}
-                      onChange={e => updateBaseStep(sIdx, 'headersText', e.target.value)}
+                      onChange={val => updateBaseStep(sIdx, 'headersText', val)}
                       placeholder='{\n  "Content-Type": "application/json"\n}'
+                      allVarSuggestions={allVarSuggestions}
                     />
                   </div>
 
                   {['POST', 'PUT', 'PATCH'].includes((step.method || 'GET').toUpperCase()) ? (
                     <div className="form-group">
                       <label className="form-label">Body (JSON)</label>
-                      <textarea
-                        className="form-input mono"
+                      <SmartTextarea
                         rows={3}
                         style={{ fontSize: '0.8rem' }}
                         value={step.bodyText || ''}
-                        onChange={e => updateBaseStep(sIdx, 'bodyText', e.target.value)}
+                        onChange={val => updateBaseStep(sIdx, 'bodyText', val)}
                         placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}'
+                        allVarSuggestions={allVarSuggestions}
                       />
                     </div>
                   ) : (

@@ -1,0 +1,102 @@
+[
+  {
+    "email": "student0001@loadtesting.com",
+    "password": "GradeMeAI",
+    "success": true,
+    "message": "Logged in successfully",
+    "user": {
+      "id": "6a7226d7b003b9c339ea7ad2",
+      "firstName": "Student",
+      "lastName": "0001",
+      "email": "student0001@loadtesting.com"
+    },
+    "user.id": "6a7226d7b003b9c339ea7ad2",
+    "id": "6a7226d7b003b9c339ea7ad2",
+    "user.firstName": "Student",
+    "firstName": "Student",
+    "user.lastName": "0001",
+    "lastName": "0001",
+    "user.email": "student0001@loadtesting.com",
+    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MDg4ODE0LCJleHAiOjE3ODYxMTA0MTR9.yd8EeFmvcauFuYV8RDzI3P36OdrIU2SDq4g9rWENgCY; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:54 GMT; HttpOnly; Secure; SameSite=None"
+  },
+  {
+    "email": "student0002@loadtesting.com",
+    "password": "GradeMeAI",
+    "success": true,
+    "message": "Logged in successfully",
+    "user": {
+      "id": "6a7226d7b003b9c339ea7ad3",
+      "firstName": "Student",
+      "lastName": "0002",
+      "email": "student0002@loadtesting.com"
+    },
+    "user.id": "6a7226d7b003b9c339ea7ad3",
+    "id": "6a7226d7b003b9c339ea7ad3",
+    "user.firstName": "Student",
+    "firstName": "Student",
+    "user.lastName": "0002",
+    "lastName": "0002",
+    "user.email": "student0002@loadtesting.com",
+    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMyIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAyIiwiaWF0IjoxNzg2MDg4ODE0LCJleHAiOjE3ODYxMTA0MTR9.hr22-AzS1l8RQr7UfdA76FBZ6O747jgWgYk8bE6_LuA; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:54 GMT; HttpOnly; Secure; SameSite=None"
+  },
+  {
+    "email": "student0003@loadtesting.com",
+    "password": "GradeMeAI",
+    "success": true,
+    "message": "Logged in successfully",
+    "user": {
+      "id": "6a7226d7b003b9c339ea7ad4",
+      "firstName": "Student",
+      "lastName": "0003",
+      "email": "student0003@loadtesting.com"
+    },
+    "user.id": "6a7226d7b003b9c339ea7ad4",
+    "id": "6a7226d7b003b9c339ea7ad4",
+    "user.firstName": "Student",
+    "firstName": "Student",
+    "user.lastName": "0003",
+    "lastName": "0003",
+    "user.email": "student0003@loadtesting.com",
+    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkNCIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAzIiwiaWF0IjoxNzg2MDg4ODE1LCJleHAiOjE3ODYxMTA0MTV9.tnEpNzzRpmWbkIbxqQnKIcdjj9m_ZModajfoRlkbmTc; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:55 GMT; HttpOnly; Secure; SameSite=None"
+  },
+  {
+    "email": "student0004@loadtesting.com",
+    "password": "GradeMeAI",
+    "success": true,
+    "message": "Logged in successfully",
+    "user": {
+      "id": "6a7226d7b003b9c339ea7ad5",
+      "firstName": "Student",
+      "lastName": "0004",
+      "email": "student0004@loadtesting.com"
+    },
+    "user.id": "6a7226d7b003b9c339ea7ad5",
+    "id": "6a7226d7b003b9c339ea7ad5",
+    "user.firstName": "Student",
+    "firstName": "Student",
+    "user.lastName": "0004",
+    "lastName": "0004",
+    "user.email": "student0004@loadtesting.com",
+    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkNSIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDA0IiwiaWF0IjoxNzg2MDg4ODE1LCJleHAiOjE3ODYxMTA0MTV9.0KAD5l7ScWNA00f9MOtSSMaKxAM7h4Uw9okoeKg2cCc; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:55 GMT; HttpOnly; Secure; SameSite=None"
+  },
+  {
+    "email": "student0005@loadtesting.com",
+    "password": "GradeMeAI",
+    "success": true,
+    "message": "Logged in successfully",
+    "user": {
+      "id": "6a7226d7b003b9c339ea7ad6",
+      "firstName": "Student",
+      "lastName": "0005",
+      "email": "student0005@loadtesting.com"
+    },
+    "user.id": "6a7226d7b003b9c339ea7ad6",
+    "id": "6a7226d7b003b9c339ea7ad6",
+    "user.firstName": "Student",
+    "firstName": "Student",
+    "user.lastName": "0005",
+    "lastName": "0005",
+    "user.email": "student0005@loadtesting.com",
+    "authCookie": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkNiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDA1IiwiaWF0IjoxNzg2MDg4ODE1LCJleHAiOjE3ODYxMTA0MTV9.nRm-TzBN4nkGi1zC8jgmUjMgJesQvx62OoPCpRiK56g; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Fri, 07 Aug 2026 13:46:55 GMT; HttpOnly; Secure; SameSite=None"
+  }
+]

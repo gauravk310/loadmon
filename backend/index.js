@@ -70,11 +70,21 @@ app.use('/api/results', require('./routes/results'));
 const uiDist = path.join(__dirname, '..', 'ui', 'dist');
 if (fs.existsSync(uiDist)) {
   app.use(express.static(uiDist));
-  app.get('*', (req, res) => res.sendFile(path.join(uiDist, 'index.html')));
 }
 
 // ── Health check ─────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
+// ── Catch-all handler ───────────────────────────────────
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ success: false, error: `API route not found: ${req.method} ${req.path}` });
+  }
+  if (fs.existsSync(uiDist)) {
+    return res.sendFile(path.join(uiDist, 'index.html'));
+  }
+  res.status(404).json({ success: false, error: `Route not found: ${req.method} ${req.path}` });
+});
 
 // ── Start ─────────────────────────────────────────────────
 app.listen(PORT, () => {

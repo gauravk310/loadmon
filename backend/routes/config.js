@@ -70,6 +70,7 @@ router.get('/base-status', (req, res) => {
       baseStepsCount: config.baseSteps ? config.baseSteps.length : 0,
       baseSavedKeys: config.baseSavedKeys || sampleKeys,
       baseStepSavedKeys: getFallbackStepSavedKeys(config),
+      baseStepResponses: config.baseStepResponses || [],
       preparedCount,
       preparedAt: config.basePreparedAt || null
     });
@@ -115,6 +116,7 @@ router.post('/run-base-chain', async (req, res) => {
     const baseUserSessions = [];
     const allCapturedKeys = new Set(['authCookie', 'token', 'access_token', 'authorization']);
     const stepKeySets = baseSteps.map(() => new Set());
+    const baseStepResponses = [];
     let successUserCount = 0;
     let failedUserCount = 0;
     const errorDetails = [];
@@ -217,12 +219,54 @@ router.post('/run-base-chain', async (req, res) => {
             stepKeySets[sIdx].add('authCookie');
           }
 
+          if (u === 0) {
+            baseStepResponses.push({
+              stepIndex: sIdx + 1,
+              stepId: step.id || `step_${sIdx + 1}`,
+              stepName: step.name || `Step ${sIdx + 1}`,
+              method: method,
+              endpoint: step.endpoint,
+              resolvedEndpoint: resolvedEndpoint,
+              status: result.status,
+              statusText: result.statusText,
+              duration: result.duration,
+              success: result.success,
+              headers: result.headers,
+              responseJson: result.json || null,
+              responseBody: result.text ? (result.text.length > 5000 ? result.text.slice(0, 5000) + '...' : result.text) : null,
+              error: !result.success ? `HTTP ${result.status}` : null,
+              capturedCookies: userContext['authCookie'] || null,
+              capturedTokens: {
+                token: userContext['token'] || null,
+                access_token: userContext['access_token'] || null,
+                authorization: userContext['authorization'] || null
+              }
+            });
+          }
+
           if (!result.success) {
             userSuccess = false;
             errorDetails.push(`User ${u + 1} failed on step ${sIdx + 1} (${step.name || method}): HTTP ${result.status}`);
             break;
           }
         } catch (err) {
+          if (u === 0) {
+            baseStepResponses.push({
+              stepIndex: sIdx + 1,
+              stepId: step.id || `step_${sIdx + 1}`,
+              stepName: step.name || `Step ${sIdx + 1}`,
+              method: method,
+              endpoint: step.endpoint,
+              resolvedEndpoint: resolvedEndpoint,
+              status: 500,
+              statusText: 'Connection Error',
+              duration: 0,
+              success: false,
+              error: err.message,
+              responseJson: null,
+              responseBody: err.message
+            });
+          }
           userSuccess = false;
           errorDetails.push(`User ${u + 1} step ${sIdx + 1} connection error: ${err.message}`);
           break;
@@ -257,6 +301,7 @@ router.post('/run-base-chain', async (req, res) => {
       baseSteps,
       baseSavedKeys: savedKeysList,
       baseStepSavedKeys,
+      baseStepResponses,
       basePreparedCount: baseUserSessions.length,
       basePreparedAt: new Date().toISOString(),
     };
@@ -270,6 +315,7 @@ router.post('/run-base-chain', async (req, res) => {
       failedUserCount,
       savedKeys: savedKeysList,
       baseStepSavedKeys,
+      baseStepResponses,
       errorDetails: errorDetails.slice(0, 5),
       config: updatedConfig
     });

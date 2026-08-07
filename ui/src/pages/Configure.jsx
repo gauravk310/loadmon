@@ -52,6 +52,10 @@ export default function Configure() {
     return baseRunResult?.baseStepSavedKeys || baseStatus?.baseStepSavedKeys || config?.baseStepSavedKeys || []
   }, [baseRunResult?.baseStepSavedKeys, baseStatus?.baseStepSavedKeys, config?.baseStepSavedKeys])
 
+  const stepResponses = useMemo(() => {
+    return baseRunResult?.baseStepResponses || baseStatus?.baseStepResponses || config?.baseStepResponses || []
+  }, [baseRunResult?.baseStepResponses, baseStatus?.baseStepResponses, config?.baseStepResponses])
+
   const allVarSuggestions = useMemo(() => {
     const defaultKeys = [
       'email', 'password', 'token', 'access_token', 'authorization',
@@ -730,6 +734,100 @@ export default function Configure() {
                     </div>
                   )}
                 </div>
+
+                {/* Response Panel for Base Step */}
+                {(() => {
+                  const stepResp = stepResponses[sIdx]
+                  if (!stepResp) return null
+                  const isSuccess = stepResp.success !== false
+                  return (
+                    <div
+                      className="chain-response-panel mt-3"
+                      style={{
+                        border: `1px solid ${isSuccess ? 'var(--success)' : 'var(--danger)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        background: isSuccess ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.75rem',
+                        padding: '0.6rem 0.9rem',
+                        borderBottom: '1px solid var(--border)',
+                        background: 'var(--bg-elevated)',
+                        flexWrap: 'wrap',
+                      }}>
+                        <span style={{
+                          padding: '2px 10px', borderRadius: 20, fontWeight: 700, fontSize: '0.8rem',
+                          background: isSuccess ? 'var(--success)' : 'var(--danger)',
+                          color: '#fff',
+                        }}>
+                          {stepResp.status ? `${stepResp.status} ${stepResp.statusText || ''}` : (isSuccess ? '200 OK' : 'ERR')}
+                        </span>
+                        {stepResp.resolvedEndpoint && (
+                          <code style={{ fontSize: '0.72rem', color: 'var(--cyan)', flex: 1, wordBreak: 'break-all' }}>
+                            {stepResp.resolvedEndpoint}
+                          </code>
+                        )}
+                        {stepResp.duration != null && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                            ⏱ {stepResp.duration} ms
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ padding: '0.75rem 0.9rem' }}>
+                        {stepResp.error && (
+                          <div style={{ color: 'var(--danger)', fontSize: '0.82rem', marginBottom: '0.5rem' }}>
+                            ❌ {stepResp.error}
+                          </div>
+                        )}
+
+                        {(stepResp.capturedCookies || (stepResp.capturedTokens && (stepResp.capturedTokens.authorization || stepResp.capturedTokens.token || stepResp.capturedTokens.access_token))) && (
+                          <div style={{
+                            marginBottom: '0.85rem',
+                            padding: '0.65rem 0.85rem',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(16,185,129,0.08)',
+                            border: '1px solid rgba(16,185,129,0.25)',
+                          }}>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--success)', fontWeight: 700, marginBottom: '0.4rem' }}>
+                              🔒 Captured Session Data (Sample User 1)
+                            </div>
+                            {stepResp.capturedCookies && (
+                              <div style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>🍪 Cookie Header: </span>
+                                <code style={{ color: 'var(--success)', background: 'var(--bg-base)', padding: '2px 6px', borderRadius: 4, fontSize: '0.72rem' }}>
+                                  {stepResp.capturedCookies}
+                                </code>
+                              </div>
+                            )}
+                            {(stepResp.capturedTokens?.authorization || stepResp.capturedTokens?.token || stepResp.capturedTokens?.access_token) && (
+                              <div style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>🔑 Bearer / Auth Token: </span>
+                                <code style={{ color: 'var(--cyan)', background: 'var(--bg-base)', padding: '2px 6px', borderRadius: 4, fontSize: '0.72rem' }}>
+                                  {stepResp.capturedTokens.authorization || `Bearer ${stepResp.capturedTokens.token || stepResp.capturedTokens.access_token}`}
+                                </code>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem', fontWeight: 600 }}>
+                          RESPONSE BODY (USER 1 SAMPLE)
+                        </div>
+                        <pre className="chain-response-json" style={{
+                          maxHeight: 240, overflowY: 'auto', margin: 0, fontSize: '0.78rem',
+                          color: isSuccess ? 'var(--text-primary)' : 'var(--danger)',
+                        }}>
+                          {stepResp.responseJson
+                            ? JSON.stringify(stepResp.responseJson, null, 2)
+                            : stepResp.responseBody || '(no response body)'}
+                        </pre>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             ))}
           </div>

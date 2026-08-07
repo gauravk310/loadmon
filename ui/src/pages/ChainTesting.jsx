@@ -49,51 +49,59 @@ function VarDropdown({ suggestions, onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
 
-  if (!suggestions.length) return null
+  if (!suggestions || !suggestions.length) return null
 
-  const authVars = suggestions.filter(s => s.isAuth)
-  const dataVars = suggestions.filter(s => !s.isAuth)
+  // Group suggestions by stepLabel / stepName
+  const groupsMap = new Map()
+
+  suggestions.forEach(s => {
+    const rawLabel = s.stepLabel || (s.stepNum ? `Step ${s.stepNum}: ${s.stepName}` : s.stepName) || 'Saved Variables'
+    if (!groupsMap.has(rawLabel)) {
+      groupsMap.set(rawLabel, {
+        label: rawLabel,
+        stepNum: s.stepNum ?? 999,
+        isCredential: rawLabel.toLowerCase().includes('credential') || rawLabel.toLowerCase().includes('initial'),
+        items: []
+      })
+    }
+    groupsMap.get(rawLabel).items.push(s)
+  })
+
+  const groupList = Array.from(groupsMap.values()).sort((a, b) => a.stepNum - b.stepNum)
 
   return (
     <div className="var-dropdown" onMouseDown={e => e.stopPropagation()}>
       <div className="var-dropdown-header">💡 Available Variables</div>
-      {authVars.length > 0 && (
-        <>
-          <div style={{ padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--success)', background: 'rgba(16,185,129,0.08)' }}>
-            🔑 SESSION & AUTH TOKENS
+      {groupList.map((g, gIdx) => (
+        <div key={gIdx} className="var-dropdown-group">
+          <div style={{
+            padding: '4px 8px',
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            color: g.isCredential ? 'var(--success)' : 'var(--cyan)',
+            background: g.isCredential ? 'rgba(16,185,129,0.08)' : 'rgba(34,211,238,0.08)',
+            borderTop: gIdx > 0 ? '1px solid var(--border)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>{g.isCredential ? '🔑 ' : '📌 '}{g.label.toUpperCase()}</span>
+            <span style={{ opacity: 0.7, fontSize: '0.62rem', fontWeight: 500 }}>({g.items.length})</span>
           </div>
-          {authVars.map((s, i) => (
+          {g.items.map((s, i) => (
             <div
-              key={`auth-${i}`}
+              key={`${gIdx}-${i}`}
               className="var-dropdown-item"
               onMouseDown={() => { onSelect(s.key); onClose() }}
             >
-              <span className="var-key" style={{ color: 'var(--success)' }}>{`{{${s.key}}}`}</span>
-              <span className="var-source">← Step {s.stepNum}: {s.stepName}</span>
+              <span className="var-key" style={{ color: s.isAuth ? 'var(--success)' : 'var(--cyan)' }}>
+                {`{{${s.key}}}`}
+              </span>
+              <span className="var-source">← {g.label}</span>
             </div>
           ))}
-        </>
-      )}
-
-      {dataVars.length > 0 && (
-        <>
-          {authVars.length > 0 && (
-            <div style={{ padding: '4px 8px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--cyan)', background: 'rgba(34,211,238,0.08)' }}>
-              📦 RESPONSE VARIABLES
-            </div>
-          )}
-          {dataVars.map((s, i) => (
-            <div
-              key={`data-${i}`}
-              className="var-dropdown-item"
-              onMouseDown={() => { onSelect(s.key); onClose() }}
-            >
-              <span className="var-key">{`{{${s.key}}}`}</span>
-              <span className="var-source">← Step {s.stepNum}: {s.stepName}</span>
-            </div>
-          ))}
-        </>
-      )}
+        </div>
+      ))}
     </div>
   )
 }

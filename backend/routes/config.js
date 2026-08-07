@@ -29,6 +29,26 @@ router.post('/', (req, res) => {
   }
 });
 
+// ── Helper to fallback baseStepSavedKeys if missing in config ──
+function getFallbackStepSavedKeys(config) {
+  if (config && Array.isArray(config.baseStepSavedKeys) && config.baseStepSavedKeys.length > 0) {
+    return config.baseStepSavedKeys;
+  }
+  if (config && Array.isArray(config.baseSavedKeys) && config.baseSavedKeys.length > 0) {
+    const steps = config.baseSteps || [];
+    const firstStep = steps[0] || { name: 'Step 1' };
+    return [
+      {
+        stepIndex: 1,
+        stepId: firstStep.id || 'step_1',
+        stepName: firstStep.name || 'Step 1',
+        keys: config.baseSavedKeys
+      }
+    ];
+  }
+  return [];
+}
+
 // ── GET /api/config/base-status ───────────────────────────
 router.get('/base-status', (req, res) => {
   try {
@@ -49,6 +69,7 @@ router.get('/base-status', (req, res) => {
       baseNumUsers: config.baseNumUsers || 10,
       baseStepsCount: config.baseSteps ? config.baseSteps.length : 0,
       baseSavedKeys: config.baseSavedKeys || sampleKeys,
+      baseStepSavedKeys: getFallbackStepSavedKeys(config),
       preparedCount,
       preparedAt: config.basePreparedAt || null
     });
@@ -93,6 +114,7 @@ router.post('/run-base-chain', async (req, res) => {
 
     const baseUserSessions = [];
     const allCapturedKeys = new Set(['authCookie', 'token', 'access_token', 'authorization']);
+    const stepKeySets = baseSteps.map(() => new Set());
     let successUserCount = 0;
     let failedUserCount = 0;
     const errorDetails = [];
@@ -152,7 +174,10 @@ router.post('/run-base-chain', async (req, res) => {
 
           if (result.json && typeof result.json === 'object') {
             const keys = flattenKeys(result.json);
-            keys.forEach(k => allCapturedKeys.add(k));
+            keys.forEach(k => {
+              allCapturedKeys.add(k);
+              stepKeySets[sIdx].add(k);
+            });
 
             function doFlatten(obj, prefix) {
               if (!obj || typeof obj !== 'object') return;
@@ -166,6 +191,8 @@ router.post('/run-base-chain', async (req, res) => {
                 userContext[k] = v;
                 allCapturedKeys.add(fullKey);
                 allCapturedKeys.add(k);
+                stepKeySets[sIdx].add(fullKey);
+                stepKeySets[sIdx].add(k);
                 if (typeof v === 'object' && v !== null) doFlatten(v, fullKey);
               }
             }
@@ -177,6 +204,9 @@ router.post('/run-base-chain', async (req, res) => {
               userContext['access_token'] = tokenCandidate;
               const formattedBearer = tokenCandidate.startsWith('Bearer ') ? tokenCandidate : `Bearer ${tokenCandidate}`;
               userContext['authorization'] = formattedBearer;
+              stepKeySets[sIdx].add('token');
+              stepKeySets[sIdx].add('access_token');
+              stepKeySets[sIdx].add('authorization');
             }
           }
 
@@ -184,6 +214,7 @@ router.post('/run-base-chain', async (req, res) => {
           if (setCookie) {
             const capturedCookieStr = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
             userContext['authCookie'] = capturedCookieStr;
+            stepKeySets[sIdx].add('authCookie');
           }
 
           if (!result.success) {
@@ -212,6 +243,12 @@ router.post('/run-base-chain', async (req, res) => {
     fs.writeFileSync(baseSessionsPath, JSON.stringify(baseUserSessions, null, 2));
 
     const savedKeysList = Array.from(allCapturedKeys);
+    const baseStepSavedKeys = baseSteps.map((step, idx) => ({
+      stepIndex: idx + 1,
+      stepId: step.id || `step_${idx + 1}`,
+      stepName: step.name || `Step ${idx + 1}`,
+      keys: Array.from(stepKeySets[idx] || [])
+    }));
 
     // Update config.json
     const updatedConfig = {
@@ -219,6 +256,7 @@ router.post('/run-base-chain', async (req, res) => {
       baseNumUsers: numUsers,
       baseSteps,
       baseSavedKeys: savedKeysList,
+      baseStepSavedKeys,
       basePreparedCount: baseUserSessions.length,
       basePreparedAt: new Date().toISOString(),
     };
@@ -231,6 +269,7 @@ router.post('/run-base-chain', async (req, res) => {
       successUserCount,
       failedUserCount,
       savedKeys: savedKeysList,
+      baseStepSavedKeys,
       errorDetails: errorDetails.slice(0, 5),
       config: updatedConfig
     });

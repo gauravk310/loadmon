@@ -48,19 +48,55 @@ export default function Configure() {
   const [newHostname, setNewHostname]       = useState('')
   const [addError, setAddError]             = useState(null)
 
+  const stepSavedGroups = useMemo(() => {
+    return baseRunResult?.baseStepSavedKeys || baseStatus?.baseStepSavedKeys || config?.baseStepSavedKeys || []
+  }, [baseRunResult?.baseStepSavedKeys, baseStatus?.baseStepSavedKeys, config?.baseStepSavedKeys])
+
   const allVarSuggestions = useMemo(() => {
     const defaultKeys = [
       'email', 'password', 'token', 'access_token', 'authorization',
       'authCookie', 'id', 'user.id', 'user_id', 'userId', 'studentId', 'classId', 'testId'
     ]
     const serverKeys = baseStatus?.baseSavedKeys || config?.baseSavedKeys || []
+    
+    // Map key -> step info
+    const keyToStepMap = new Map()
+    if (stepSavedGroups && stepSavedGroups.length > 0) {
+      stepSavedGroups.forEach((grp, idx) => {
+        const sNum = grp.stepIndex || (idx + 1)
+        const sName = grp.stepName || `Step ${sNum}`
+        const sLabel = `Step ${sNum}: ${sName}`
+        (grp.keys || []).forEach(k => {
+          if (!keyToStepMap.has(k)) {
+            keyToStepMap.set(k, { stepNum: sNum, stepName: sName, stepLabel: sLabel })
+          }
+        })
+      })
+    }
+
     const combined = Array.from(new Set([...defaultKeys, ...serverKeys]))
-    return combined.map(k => ({
-      key: k,
-      isAuth: /token|cookie|auth/i.test(k),
-      stepName: serverKeys.includes(k) ? 'Saved Variable' : 'User Credential / Variable'
-    }))
-  }, [baseStatus?.baseSavedKeys, config?.baseSavedKeys])
+    return combined.map(k => {
+      const stepInfo = keyToStepMap.get(k)
+      const isAuth = /token|cookie|auth/i.test(k)
+      if (stepInfo) {
+        return {
+          key: k,
+          isAuth,
+          stepNum: stepInfo.stepNum,
+          stepName: stepInfo.stepName,
+          stepLabel: stepInfo.stepLabel
+        }
+      } else {
+        return {
+          key: k,
+          isAuth,
+          stepNum: 0,
+          stepName: 'User Credential / Variable',
+          stepLabel: 'User Credential / Variable'
+        }
+      }
+    })
+  }, [stepSavedGroups, baseStatus?.baseSavedKeys, config?.baseSavedKeys])
 
   // Seed form when config loads
   useEffect(() => {
@@ -504,7 +540,29 @@ export default function Configure() {
                     ✅ {baseStatus.preparedCount} User Sessions Authenticated &amp; Saved
                     {baseStatus.preparedAt && <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '0.5rem', fontWeight: 400 }}>({new Date(baseStatus.preparedAt).toLocaleTimeString()})</span>}
                   </div>
-                  {baseStatus.baseSavedKeys && baseStatus.baseSavedKeys.length > 0 && (
+                  {stepSavedGroups && stepSavedGroups.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Available Variables (Grouped by Step):</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        {stepSavedGroups.map((grp, gIdx) => (
+                          <div key={gIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '4px' }}>
+                            <span className="text-xs font-semibold" style={{ color: 'var(--cyan)', minWidth: '160px' }}>
+                              Step {grp.stepIndex || (gIdx + 1)} ({grp.stepName}):
+                            </span>
+                            {grp.keys && grp.keys.length > 0 ? (
+                              grp.keys.map((k, i) => (
+                                <span key={i} className="badge badge-accent mono" style={{ fontSize: '0.72rem' }}>
+                                  {`{{${k}}}`}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted">No variables captured</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : baseStatus.baseSavedKeys && baseStatus.baseSavedKeys.length > 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                       <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Available Variables:</span>
                       {baseStatus.baseSavedKeys.slice(0, 10).map((k, i) => (
@@ -516,7 +574,7 @@ export default function Configure() {
                         <span className="text-sm text-muted">+{baseStatus.baseSavedKeys.length - 10} more</span>
                       )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}
@@ -537,10 +595,35 @@ export default function Configure() {
                 </div>
                 {baseRunResult.savedKeys && baseRunResult.savedKeys.length > 0 && (
                   <div className="mt-2 text-sm" style={{ wordBreak: 'break-word' }}>
-                    <strong>Saved Variables ({baseRunResult.savedKeys.length}):</strong>{' '}
-                    <span className="mono" style={{ color: 'var(--cyan)' }}>
-                      {baseRunResult.savedKeys.map(k => `{{${k}}}`).join(', ')}
-                    </span>
+                    <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>
+                      Saved Variables ({baseRunResult.savedKeys.length}) Grouped by Step:
+                    </div>
+                    {baseRunResult.baseStepSavedKeys && baseRunResult.baseStepSavedKeys.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {baseRunResult.baseStepSavedKeys.map((grp, idx) => (
+                          <div key={idx} className="p-2 rounded" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--border)' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--cyan)', fontSize: '0.82rem', marginBottom: '0.3rem' }}>
+                              Step {grp.stepIndex || (idx + 1)} ({grp.stepName}) — {grp.keys ? grp.keys.length : 0} variable{grp.keys && grp.keys.length !== 1 ? 's' : ''}:
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                              {grp.keys && grp.keys.length > 0 ? (
+                                grp.keys.map(k => (
+                                  <span key={k} className="badge badge-accent mono" style={{ fontSize: '0.72rem' }}>
+                                    {`{{${k}}}`}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted">No response variables</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="mono" style={{ color: 'var(--cyan)' }}>
+                        {baseRunResult.savedKeys.map(k => `{{${k}}}`).join(', ')}
+                      </span>
+                    )}
                   </div>
                 )}
                 {baseRunResult.errorDetails && baseRunResult.errorDetails.length > 0 && (

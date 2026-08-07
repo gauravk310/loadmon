@@ -344,8 +344,10 @@ router.post('/start', (req, res) => {
 
 
   const userDataPath = path.join(uploadsDir, 'userData.json');
-  if (!fs.existsSync(userDataPath)) {
-    return res.status(400).json({ success: false, error: 'No userData.json found. Please upload data first.' });
+  const baseSessionsPath = path.join(uploadsDir, 'baseUserSessions.json');
+  const hasBaseSessions = config.useBaseConfig && fs.existsSync(baseSessionsPath);
+  if (!fs.existsSync(userDataPath) && !hasBaseSessions) {
+    return res.status(400).json({ success: false, error: 'No user data or Base Config sessions found. Please upload user data or run Base API Configuration first.' });
   }
 
   // Write dynamic YAML
@@ -376,6 +378,8 @@ router.post('/start', (req, res) => {
     SERVER_URL: config.serverUrl,
     HOSTNAME: config.hostname,
     USERDATA_PATH: userDataPath,
+    BASE_SESSIONS_PATH: baseSessionsPath,
+    USE_BASE_CONFIG: String(!!config.useBaseConfig),
   };
 
   currentProcess = spawn(artilleryCmd, args, {

@@ -190,6 +190,40 @@ export function AppProvider({ children }) {
     return res.json()
   }, [])
 
+  const [baseStatus, setBaseStatus] = useState(null)
+
+  const fetchBaseStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/config/base-status`)
+      const data = await res.json()
+      if (data.success) {
+        setBaseStatus(data)
+      }
+    } catch (e) {
+      console.error('Failed to fetch base status:', e)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBaseStatus()
+  }, [fetchBaseStatus])
+
+  const runBaseConfig = useCallback(async ({ baseNumUsers, baseSteps }) => {
+    const res = await fetch(`${API}/config/run-base-chain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ baseNumUsers, baseSteps })
+    })
+    const data = await res.json()
+    if (data.success) {
+      await fetchBaseStatus()
+      if (data.config) {
+        setConfig(data.config)
+      }
+    }
+    return data
+  }, [fetchBaseStatus])
+
   return (
     <AppContext.Provider value={{
       config, setConfig, saveConfig,
@@ -197,6 +231,7 @@ export function AppProvider({ children }) {
       startTest, stopTest,
       chains, selectedChainId, setSelectedChainId,
       saveChain, deleteChain, fetchChains,
+      baseStatus, fetchBaseStatus, runBaseConfig,
       API
     }}>
       {children}

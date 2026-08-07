@@ -93,7 +93,7 @@ function extractPath(urlStr) {
 export default function Dashboard() {
   const {
     testStatus, liveMetrics, logs, stepLogs, setStepLogs,
-    startTest, stopTest, config, API
+    startTest, stopTest, config, baseStatus, API
   } = useApp()
 
   const [selectedPreset, setSelectedPreset] = useState('default')
@@ -225,6 +225,9 @@ export default function Dashboard() {
     setStopping(false)
   }
 
+  const preparedCount = baseStatus?.preparedCount || config?.basePreparedCount || 0
+  const isBaseActive = !!config?.useBaseConfig
+
   return (
     <div className="page-wrapper animate-fade-in">
       {/* Header */}
@@ -270,23 +273,35 @@ export default function Dashboard() {
 
       {/* Single Request Target banner */}
       {!testStatus.running && (
-        <div className="card card-p mb-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-overlay)', padding: '0.6rem 1.25rem' }}>
-          <div className="flex items-center gap-3">
-            <span style={{ fontSize: '1.1rem' }}>🎯</span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                Single Request Target:
-              </span>
-              <span className="badge badge-accent" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-                {config?.method || 'POST'}
-              </span>
-              <code style={{ color: 'var(--cyan)', fontSize: '0.8rem' }}>
-                {config?.targetEndpoint || '/api/auth/signin'}
-              </code>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '0.5rem' }}>
-                (Configured in Configure page · Default Single Request Configuration)
-              </span>
+        <div className="card card-p mb-2" style={{ borderColor: isBaseActive ? 'var(--accent-glow)' : 'var(--border)', background: 'var(--bg-overlay)', padding: '0.6rem 1.25rem' }}>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span style={{ fontSize: '1.1rem' }}>🎯</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  Single Request Target:
+                </span>
+                <span className="badge badge-accent" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                  {config?.method || 'POST'}
+                </span>
+                <code style={{ color: 'var(--cyan)', fontSize: '0.8rem' }}>
+                  {config?.targetEndpoint || '/api/auth/signin'}
+                </code>
+              </div>
             </div>
+
+            {/* Base Config status pill */}
+            {isBaseActive ? (
+              <div className="flex items-center gap-2">
+                <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--success)', border: '1px solid rgba(16,185,129,0.3)', fontWeight: 700, padding: '0.3rem 0.6rem' }}>
+                  🔑 Base Config ON: {preparedCount} Authenticated Users
+                </span>
+              </div>
+            ) : (
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                Base Config OFF
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -721,5 +721,9 @@ router.post('/run-data-driven', async (req, res) => {
   }
 });
 
+router.proxyRequest = proxyRequest;
+router.resolveVars = resolveVars;
+router.flattenKeys = flattenKeys;
+
 module.exports = router;
 

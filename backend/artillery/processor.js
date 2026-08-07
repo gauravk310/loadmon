@@ -13,14 +13,26 @@ fs.writeFileSync(studentLogPath, '');
 // Supports USERDATA_PATH env var (set by backend) or falls back to local uploads/
 const userDataFile = process.env.USERDATA_PATH
   || path.join(__dirname, '..', 'uploads', 'userData.json');
+const baseSessionsFile = process.env.BASE_SESSIONS_PATH
+  || path.join(__dirname, '..', 'uploads', 'baseUserSessions.json');
+const configPath = path.join(__dirname, '..', 'config.json');
 
 let userData = [];
 try {
   userData = JSON.parse(fs.readFileSync(userDataFile, 'utf-8'));
   console.log(`\n📋 Loaded ${userData.length} rows from userData.json`);
-  console.log(`🔄 VUs exceeding ${userData.length} will cycle through rows\n`);
 } catch (e) {
   console.error(`\n❌ Could not load userData: ${e.message}\n`);
+}
+
+let baseUserSessions = [];
+try {
+  if (fs.existsSync(baseSessionsFile)) {
+    baseUserSessions = JSON.parse(fs.readFileSync(baseSessionsFile, 'utf-8'));
+    console.log(`🔑 Loaded ${baseUserSessions.length} base user sessions from baseUserSessions.json\n`);
+  }
+} catch (e) {
+  console.error(`\n❌ Could not load baseUserSessions: ${e.message}\n`);
 }
 
 let userIndex = 0;
@@ -49,25 +61,41 @@ function randomPublicIPv4() {
 
 // ── assignUser ────────────────────────────────────────────
 function assignUser(userContext, events, done) {
-  if (!userData.length) return done(new Error('No user data loaded'));
+  let cfg = {};
+  try { cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
+  const useBaseConfig = cfg.useBaseConfig || process.env.USE_BASE_CONFIG === 'true';
 
-  const index = userIndex % userData.length;
-  const user = userData[index];
+  if (!userData.length && (!useBaseConfig || !baseUserSessions.length)) {
+    return done(new Error('No user data loaded. Upload user data or run Base API Configuration.'));
+  }
+
   userIndex++;
 
-  // Map all fields from userData row to template vars
-  Object.entries(user).forEach(([key, val]) => {
-    userContext.vars[key] = val;
-  });
+  if (userData.length > 0) {
+    const index = (userIndex - 1) % userData.length;
+    const user = userData[index];
+    Object.entries(user).forEach(([key, val]) => {
+      userContext.vars[key] = val;
+    });
 
-  // Provide alias mappings for common user ID fields if provided in CSV/JSON
-  const idVal = user.id || user._id || user.studentId || user.userId || user.user_id || user['user.id'];
-  if (idVal !== undefined) {
-    userContext.vars['id'] = userContext.vars['id'] || idVal;
-    userContext.vars['user.id'] = userContext.vars['user.id'] || idVal;
-    userContext.vars['user_id'] = userContext.vars['user_id'] || idVal;
-    userContext.vars['studentId'] = userContext.vars['studentId'] || idVal;
-    userContext.vars['userId'] = userContext.vars['userId'] || idVal;
+    const idVal = user.id || user._id || user.studentId || user.userId || user.user_id || user['user.id'];
+    if (idVal !== undefined) {
+      userContext.vars['id'] = userContext.vars['id'] || idVal;
+      userContext.vars['user.id'] = userContext.vars['user.id'] || idVal;
+      userContext.vars['user_id'] = userContext.vars['user_id'] || idVal;
+      userContext.vars['studentId'] = userContext.vars['studentId'] || idVal;
+      userContext.vars['userId'] = userContext.vars['userId'] || idVal;
+    }
+  }
+
+  if (useBaseConfig && baseUserSessions.length > 0) {
+    const bIndex = (userIndex - 1) % baseUserSessions.length;
+    const baseSession = baseUserSessions[bIndex];
+    Object.entries(baseSession).forEach(([key, val]) => {
+      if (val !== undefined && val !== null) {
+        userContext.vars[key] = val;
+      }
+    });
   }
 
   // Random IP to bypass rate limiting (requires trust proxy on target)

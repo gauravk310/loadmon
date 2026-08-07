@@ -1,16 +1,44 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext.jsx'
+import { SmartInput, SmartTextarea } from '../components/SmartInputs.jsx'
+
+function defaultBaseSteps() {
+  return [
+    {
+      id: 'step_1',
+      name: 'Sign In',
+      method: 'POST',
+      endpoint: '/api/auth/signin',
+      headersText: '{\n  "Content-Type": "application/json"\n}',
+      bodyText: '{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}',
+      think: 1
+    },
+    {
+      id: 'step_2',
+      name: 'Get Class',
+      method: 'GET',
+      endpoint: '/api/class/list',
+      headersText: '',
+      bodyText: '',
+      think: 1
+    }
+  ]
+}
 
 function defaultPhases() {
   return [{ duration: 30, arrivalRate: 5, name: 'Quick Test' }]
 }
 
 export default function Configure() {
-  const { config, saveConfig } = useApp()
+  const { config, saveConfig, baseStatus, runBaseConfig } = useApp()
   const [form, setForm]       = useState(null)
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
   const [error, setError]     = useState(null)
+
+  const [runningBase, setRunningBase]     = useState(false)
+  const [baseRunResult, setBaseRunResult] = useState(null)
+
 
   // Add Application Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -19,6 +47,15 @@ export default function Configure() {
   const [newServerUrl, setNewServerUrl]     = useState('')
   const [newHostname, setNewHostname]       = useState('')
   const [addError, setAddError]             = useState(null)
+
+  const allVarSuggestions = useMemo(() => {
+    const keys = baseStatus?.baseSavedKeys || config?.baseSavedKeys || []
+    return keys.map(k => ({
+      key: k,
+      isAuth: /token|cookie|auth/i.test(k),
+      stepName: 'Base Config Response'
+    }))
+  }, [baseStatus?.baseSavedKeys, config?.baseSavedKeys])
 
   // Seed form when config loads
   useEffect(() => {
@@ -57,6 +94,19 @@ export default function Configure() {
         maxSockets:      config.maxSockets || 5000,
         randomIp:        config.randomIp ?? false,
         phases:          config.phases || defaultPhases(),
+        useBaseConfig:   config.useBaseConfig ?? false,
+        baseNumUsers:    config.baseNumUsers || 10,
+        baseSteps:       (config.baseSteps && config.baseSteps.length > 0)
+          ? config.baseSteps.map((s, idx) => ({
+              id: s.id || `base_step_${idx}`,
+              name: s.name || `Step ${idx + 1}`,
+              method: s.method || 'GET',
+              endpoint: s.endpoint || '/api/',
+              headersText: typeof s.headers === 'string' ? s.headers : JSON.stringify(s.headers || {}, null, 2),
+              bodyText: typeof s.body === 'string' ? s.body : (s.body ? JSON.stringify(s.body, null, 2) : ''),
+              think: s.think ?? 1
+            }))
+          : defaultBaseSteps(),
       })
     }
   }, [config, form])
@@ -179,6 +229,67 @@ export default function Configure() {
     }
   }
 
+  const addBaseStep = () => {
+    const idx = (form.baseSteps || []).length
+    const nStep = {
+      id: `base_step_${Date.now()}_${idx}`,
+      name: `Step ${idx + 1}`,
+      method: idx === 0 ? 'POST' : 'GET',
+      endpoint: '/api/',
+      headersText: idx === 0 ? '{\n  "Content-Type": "application/json"\n}' : '',
+      bodyText: '',
+      think: 1
+    }
+    set('baseSteps', [...(form.baseSteps || []), nStep])
+  }
+
+  const updateBaseStep = (index, field, val) => {
+    const steps = [...(form.baseSteps || [])]
+    steps[index] = { ...steps[index], [field]: val }
+    set('baseSteps', steps)
+  }
+
+  const removeBaseStep = (index) => {
+    set('baseSteps', (form.baseSteps || []).filter((_, i) => i !== index))
+  }
+
+  const handleRunBaseConfig = async () => {
+    setRunningBase(true)
+    setBaseRunResult(null)
+    setError(null)
+
+    const preparedBaseSteps = (form.baseSteps || []).map(s => {
+      let h = {}
+      try { h = JSON.parse(s.headersText || '{}') } catch { h = s.headersText }
+      let b = null
+      if (['POST', 'PUT', 'PATCH'].includes((s.method || 'GET').toUpperCase()) && s.bodyText) {
+        try { b = JSON.parse(s.bodyText) } catch { b = s.bodyText }
+      }
+      return {
+        id: s.id,
+        name: s.name,
+        method: s.method,
+        endpoint: s.endpoint,
+        headers: h,
+        headersText: s.headersText,
+        body: b,
+        bodyText: s.bodyText,
+        think: s.think
+      }
+    })
+
+    try {
+      const res = await runBaseConfig({
+        baseNumUsers: Number(form.baseNumUsers) || 10,
+        baseSteps: preparedBaseSteps
+      })
+      setBaseRunResult(res)
+    } catch (e) {
+      setBaseRunResult({ success: false, error: e.message })
+    }
+    setRunningBase(false)
+  }
+
   // ── Prepare configuration for saving ──────────────────
   const prepareSaveData = () => {
     let headers = {}
@@ -186,10 +297,31 @@ export default function Configure() {
     let body = {}
     try { body = JSON.parse(form.bodyText) } catch { body = form.bodyText }
 
+    const preparedBaseSteps = (form.baseSteps || []).map(s => {
+      let h = {}
+      try { h = JSON.parse(s.headersText || '{}') } catch { h = s.headersText }
+      let b = null
+      if (['POST', 'PUT', 'PATCH'].includes((s.method || 'GET').toUpperCase()) && s.bodyText) {
+        try { b = JSON.parse(s.bodyText) } catch { b = s.bodyText }
+      }
+      return {
+        id: s.id,
+        name: s.name,
+        method: s.method,
+        endpoint: s.endpoint,
+        headers: h,
+        headersText: s.headersText,
+        body: b,
+        bodyText: s.bodyText,
+        think: s.think
+      }
+    })
+
     return {
       ...form,
       headers,
       body,
+      baseSteps: preparedBaseSteps,
       steps: [],
     }
   }
@@ -307,12 +439,251 @@ export default function Configure() {
           </div>
         </div>
 
+        {/* ── Base API Configuration Chain ───────────────── */}
+        <div className="card card-p" style={{ borderColor: 'var(--accent-glow)', background: 'var(--bg-card)' }}>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div>
+              <h3 style={{ color: 'var(--accent-light)' }}>🔗 Base API Configuration Chain</h3>
+              <p className="text-sm text-muted">
+                Define prerequisite API steps (Sign In, Get Class ID, Get Test ID) to pre-authenticate multiple users and save response variables for load testing.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ color: 'var(--accent-light)', borderColor: 'var(--border)' }}
+              onClick={addBaseStep}
+            >
+              ➕ Add Step
+            </button>
+          </div>
+
+          {/* Top of Card: Save Number of Users */}
+          <div className="card card-p mb-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="form-group mb-0" style={{ flex: 1, minWidth: '220px' }}>
+                <label className="form-label" htmlFor="input-base-num-users" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                  👥 Save Number of Users
+                </label>
+                <input
+                  id="input-base-num-users"
+                  type="number"
+                  className="form-input"
+                  min={1}
+                  max={1000}
+                  value={form.baseNumUsers || 10}
+                  onChange={e => set('baseNumUsers', Math.max(1, Number(e.target.value) || 1))}
+                  placeholder="e.g. 10"
+                />
+                <span className="text-sm text-muted">Number of user accounts to run through the Base API chain and save response data for.</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleRunBaseConfig}
+                  disabled={runningBase || !(form.baseSteps && form.baseSteps.length > 0)}
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontWeight: 700 }}
+                >
+                  {runningBase ? `⏳ Running for ${form.baseNumUsers} Users…` : `⚡ Run & Save Data for ${form.baseNumUsers} Users`}
+                </button>
+              </div>
+            </div>
+
+            {/* Prepared Status Summary */}
+            {baseStatus?.preparedCount > 0 && (
+              <div className="mt-3 p-2 rounded" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.88rem' }}>
+                    ✅ {baseStatus.preparedCount} User Sessions Authenticated &amp; Saved
+                    {baseStatus.preparedAt && <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '0.5rem' }}>({new Date(baseStatus.preparedAt).toLocaleTimeString()})</span>}
+                  </div>
+                  {baseStatus.baseSavedKeys && baseStatus.baseSavedKeys.length > 0 && (
+                    <div className="flex gap-1 flex-wrap align-center">
+                      <span className="text-sm text-muted">Available Variables:</span>
+                      {baseStatus.baseSavedKeys.slice(0, 10).map((k, i) => (
+                        <span key={i} className="badge badge-accent" style={{ fontSize: '0.72rem' }}>
+                          {`{{${k}}}`}
+                        </span>
+                      ))}
+                      {baseStatus.baseSavedKeys.length > 10 && (
+                        <span className="text-sm text-muted">+{baseStatus.baseSavedKeys.length - 10} more</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Execution Result Box */}
+            {baseRunResult && (
+              <div className="mt-3 card card-p" style={{
+                borderColor: baseRunResult.success ? 'var(--success)' : 'var(--danger)',
+                background: baseRunResult.success ? 'rgba(16,185,129,0.06)' : 'var(--danger-dim)'
+              }}>
+                <div style={{ fontWeight: 700, color: baseRunResult.success ? 'var(--success)' : 'var(--danger)', marginBottom: '0.25rem' }}>
+                  {baseRunResult.success ? '✅ Base Config Chain Execution Completed' : '❌ Base Config Execution Failed'}
+                </div>
+                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  {baseRunResult.message || baseRunResult.error}
+                </div>
+                {baseRunResult.savedKeys && baseRunResult.savedKeys.length > 0 && (
+                  <div className="mt-2 text-sm">
+                    <strong>Saved Variables ({baseRunResult.savedKeys.length}):</strong>{' '}
+                    <span className="mono" style={{ color: 'var(--cyan)' }}>
+                      {baseRunResult.savedKeys.map(k => `{{${k}}}`).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {baseRunResult.errorDetails && baseRunResult.errorDetails.length > 0 && (
+                  <div className="mt-2 text-sm" style={{ color: 'var(--danger)' }}>
+                    <strong>Errors:</strong>
+                    <ul>
+                      {baseRunResult.errorDetails.map((errStr, idx) => (
+                        <li key={idx}>{errStr}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Steps List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {(form.baseSteps || []).map((step, sIdx) => (
+              <div key={step.id || sIdx} className="card card-p" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="badge badge-accent" style={{ fontWeight: 700 }}>Step {sIdx + 1}</span>
+                    <input
+                      className="form-input"
+                      style={{ fontWeight: 600, padding: '0.2rem 0.5rem', width: '200px' }}
+                      value={step.name || ''}
+                      onChange={e => updateBaseStep(sIdx, 'name', e.target.value)}
+                      placeholder={`Step ${sIdx + 1} Name`}
+                    />
+                  </div>
+                  {form.baseSteps.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: 'var(--danger)' }}
+                      onClick={() => removeBaseStep(sIdx)}
+                    >
+                      ✕ Remove Step
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid-3 mb-2">
+                  <div className="form-group">
+                    <label className="form-label">HTTP Method</label>
+                    <select
+                      className="form-select"
+                      value={step.method || 'GET'}
+                      onChange={e => updateBaseStep(sIdx, 'method', e.target.value)}
+                    >
+                      {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Endpoint Path</label>
+                    <input
+                      className="form-input"
+                      value={step.endpoint || ''}
+                      onChange={e => updateBaseStep(sIdx, 'endpoint', e.target.value)}
+                      placeholder="/api/auth/signin"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Headers (JSON)</label>
+                    <textarea
+                      className="form-input mono"
+                      rows={3}
+                      style={{ fontSize: '0.8rem' }}
+                      value={step.headersText || ''}
+                      onChange={e => updateBaseStep(sIdx, 'headersText', e.target.value)}
+                      placeholder='{\n  "Content-Type": "application/json"\n}'
+                    />
+                  </div>
+
+                  {['POST', 'PUT', 'PATCH'].includes((step.method || 'GET').toUpperCase()) ? (
+                    <div className="form-group">
+                      <label className="form-label">Body (JSON)</label>
+                      <textarea
+                        className="form-input mono"
+                        rows={3}
+                        style={{ fontSize: '0.8rem' }}
+                        value={step.bodyText || ''}
+                        onChange={e => updateBaseStep(sIdx, 'bodyText', e.target.value)}
+                        placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}'
+                      />
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label className="form-label">Think Time (seconds)</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        min={0}
+                        max={30}
+                        value={step.think ?? 1}
+                        onChange={e => updateBaseStep(sIdx, 'think', Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addBaseStep}>
+              ➕ Add Prerequisite API Step
+            </button>
+          </div>
+        </div>
+
         {/* ── Single Request Target Configuration ────────── */}
         <div className="card card-p">
-          <h3 className="mb-1" style={{ color: 'var(--text-secondary)' }}>🎯 Default Single Request Configuration</h3>
-          <p className="text-sm text-muted mb-3">
-            This endpoint request will be executed for all users during load tests when <strong>None (Single Request)</strong> is selected on the Dashboard.
-          </p>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div>
+              <h3 style={{ color: 'var(--text-secondary)' }}>🎯 Default Single Request Configuration</h3>
+              <p className="text-sm text-muted">
+                This endpoint request will be executed for all users during load tests when <strong>None (Single Request)</strong> is selected on the Dashboard.
+              </p>
+            </div>
+          </div>
+
+          {/* Toggle: Use Base Config */}
+          <label className="form-switch-row mb-3" htmlFor="input-use-base-config" style={{ padding: '0.75rem 1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
+            <div>
+              <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.92rem' }}>
+                🔗 Use Base Config Response Variables
+              </div>
+              <div className="text-sm text-muted mt-1">
+                {form.useBaseConfig
+                  ? 'ON — Uses pre-authenticated user sessions & saved response variables (e.g. {{classId}}, {{testId}}, {{token}}) during load testing.'
+                  : 'OFF (Default) — Uses standard single request without Base Config session variables.'}
+              </div>
+            </div>
+            <div className="switch">
+              <input
+                id="input-use-base-config"
+                type="checkbox"
+                checked={!!form.useBaseConfig}
+                onChange={e => set('useBaseConfig', e.target.checked)}
+              />
+              <span className="slider" />
+            </div>
+          </label>
 
           <div className="grid-3 mb-3">
             <div className="form-group">
@@ -342,12 +713,12 @@ export default function Configure() {
 
             <div className="form-group">
               <label className="form-label" htmlFor="input-endpoint">Target Endpoint Path</label>
-              <input
+              <SmartInput
                 id="input-endpoint"
-                className="form-input"
                 value={form.targetEndpoint || ''}
-                onChange={e => set('targetEndpoint', e.target.value)}
-                placeholder="/api/auth/signin"
+                onChange={val => set('targetEndpoint', val)}
+                placeholder="/api/auth/signin or /api/test/{{testId}}"
+                allVarSuggestions={allVarSuggestions}
               />
             </div>
           </div>
@@ -355,27 +726,25 @@ export default function Configure() {
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label" htmlFor="textarea-headers">Request Headers (JSON)</label>
-              <textarea
+              <SmartTextarea
                 id="textarea-headers"
-                className="form-input mono"
                 rows={5}
-                style={{ fontSize: '0.82rem' }}
                 value={form.headersText || ''}
-                onChange={e => set('headersText', e.target.value)}
+                onChange={val => set('headersText', val)}
                 placeholder='{\n  "Content-Type": "application/json"\n}'
+                allVarSuggestions={allVarSuggestions}
               />
             </div>
 
             <div className="form-group">
               <label className="form-label" htmlFor="textarea-body">Request Body (JSON)</label>
-              <textarea
+              <SmartTextarea
                 id="textarea-body"
-                className="form-input mono"
                 rows={5}
-                style={{ fontSize: '0.82rem' }}
                 value={form.bodyText || ''}
-                onChange={e => set('bodyText', e.target.value)}
-                placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}'
+                onChange={val => set('bodyText', val)}
+                placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}",\n  "classId": "{{ classId }}"\n}'
+                allVarSuggestions={allVarSuggestions}
               />
             </div>
           </div>

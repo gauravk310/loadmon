@@ -70,7 +70,7 @@ function saveChainReportFiles(serverUrl, objectResults, passedObjects, failedObj
 
       const fullUrl = serverUrl ? (serverUrl.replace(/\/$/, '') + sr.endpoint) : sr.endpoint;
 
-      const ts = new Date().toISOString();
+      const ts = sr.timestamp || new Date().toISOString();
       sendTimestampLines.push(`${ts} - ${studentId} - ${sr.method} ${fullUrl}`);
 
       const stepLog = {
@@ -767,6 +767,7 @@ router.post('/run-data-driven', async (req, res) => {
           try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
         }
 
+        const stepStartTime = new Date().toISOString();
         try {
           const result = await proxyRequest({
             serverUrl,
@@ -819,6 +820,7 @@ router.post('/run-data-driven', async (req, res) => {
           stepResults.push({
             stepIndex: i,
             stepName: step.name || `Step ${i + 1}`,
+            timestamp: stepStartTime,
             method,
             endpoint: resolvedEndpoint,
             status: result.status,
@@ -845,6 +847,7 @@ router.post('/run-data-driven', async (req, res) => {
           stepResults.push({
             stepIndex: i,
             stepName: step.name || `Step ${i + 1}`,
+            timestamp: stepStartTime,
             method,
             endpoint: resolvedEndpoint,
             status: null,

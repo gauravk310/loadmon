@@ -1,49 +1,49 @@
 {
   "aggregate": {
     "counters": {
-      "http.requests": 100,
-      "http.responses": 100,
-      "vusers.created": 100,
-      "vusers.completed": 100,
+      "http.requests": 6,
+      "http.responses": 6,
+      "vusers.created": 6,
+      "vusers.completed": 6,
       "vusers.failed": 0,
-      "http.codes.200": 100
+      "http.codes.200": 6
     },
     "summaries": {
       "http.response_time": {
-        "min": 159,
-        "max": 718,
-        "mean": 237,
-        "median": 191,
-        "p75": 214,
-        "p90": 413,
-        "p95": 541,
-        "p99": 648
+        "min": 219,
+        "max": 493,
+        "mean": 338,
+        "median": 234,
+        "p75": 463,
+        "p90": 493,
+        "p95": 493,
+        "p99": 493
       }
     },
-    "firstMetricAt": 1786128399249,
-    "lastMetricAt": 1786128404394
+    "firstMetricAt": 1786167947816,
+    "lastMetricAt": 1786167950576
   },
   "intermediate": [
     {
-      "period": "1786128399249",
+      "period": "1786167947816",
       "counters": {
-        "http.requests": 100,
-        "http.responses": 100,
-        "vusers.created": 100,
-        "vusers.completed": 100,
+        "http.requests": 6,
+        "http.responses": 6,
+        "vusers.created": 6,
+        "vusers.completed": 6,
         "vusers.failed": 0,
-        "http.codes.200": 100
+        "http.codes.200": 6
       },
       "summaries": {
         "http.response_time": {
-          "min": 159,
-          "max": 718,
-          "mean": 237,
-          "median": 191,
-          "p75": 214,
-          "p90": 413,
-          "p95": 541,
-          "p99": 648
+          "min": 219,
+          "max": 493,
+          "mean": 338,
+          "median": 234,
+          "p75": 463,
+          "p90": 493,
+          "p95": 493,
+          "p99": 493
         }
       }
     }

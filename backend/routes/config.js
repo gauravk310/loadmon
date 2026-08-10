@@ -237,10 +237,20 @@ router.post('/run-base-chain', async (req, res) => {
         }
 
         let resolvedBody = null;
-        if (['POST', 'PUT', 'PATCH'].includes(method) && step.body) {
-          const rawBody = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
-          const resolvedBodyStr = resolveVars(rawBody, userContext);
-          try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+        let resolvedFormDataParams = null;
+        if (['POST', 'PUT', 'PATCH'].includes(method)) {
+          if (step.bodyType === 'formData' && Array.isArray(step.formDataParams)) {
+            resolvedFormDataParams = step.formDataParams.map(p => {
+              if (p && p.type === 'text') {
+                return { ...p, value: resolveVars(p.value || '', userContext) };
+              }
+              return p;
+            });
+          } else if (step.body) {
+            const rawBody = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
+            const resolvedBodyStr = resolveVars(rawBody, userContext);
+            try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+          }
         }
 
         try {
@@ -250,8 +260,11 @@ router.post('/run-base-chain', async (req, res) => {
             method,
             headers: resolvedHeaders,
             body: resolvedBody,
+            bodyType: step.bodyType,
+            formDataParams: resolvedFormDataParams,
             appUrl
           });
+
 
           if (result.json && typeof result.json === 'object') {
             const keys = flattenKeys(result.json);

@@ -135,4 +135,86 @@ router.delete('/clear', (req, res) => {
   res.json({ success: true, message: 'Data cleared' });
 });
 
+// ── API Test Files Upload (Multipart / Form-Data assets) ──
+const apiFilesDir = path.join(uploadsDir, 'api_files');
+if (!fs.existsSync(apiFilesDir)) fs.mkdirSync(apiFilesDir, { recursive: true });
+
+const apiFileStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, apiFilesDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1E6);
+    const ext = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-]/g, '_');
+    cb(null, `${base}_${uniqueSuffix}${ext}`);
+  }
+});
+
+const uploadApiFiles = multer({
+  storage: apiFileStorage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB per file
+});
+
+// ── POST /api/upload/api-files ───────────────────────────
+router.post('/api-files', uploadApiFiles.array('files', 20), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, error: 'No files uploaded' });
+  }
+
+  try {
+    const uploadedFiles = req.files.map(f => ({
+      id: f.filename,
+      filename: f.filename,
+      originalName: f.originalname,
+      mimeType: f.mimetype,
+      size: f.size,
+      relativePath: path.join('uploads', 'api_files', f.filename).replace(/\\/g, '/')
+    }));
+
+    res.json({
+      success: true,
+      files: uploadedFiles,
+      message: `Successfully uploaded ${uploadedFiles.length} file(s)`
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── GET /api/upload/api-files ────────────────────────────
+router.get('/api-files', (req, res) => {
+  try {
+    if (!fs.existsSync(apiFilesDir)) {
+      return res.json({ success: true, files: [] });
+    }
+    const files = fs.readdirSync(apiFilesDir).map(fn => {
+      const fp = path.join(apiFilesDir, fn);
+      const stat = fs.statSync(fp);
+      return {
+        id: fn,
+        filename: fn,
+        originalName: fn.replace(/^.*?_\d+_\d+/, ''),
+        size: stat.size,
+        relativePath: path.join('uploads', 'api_files', fn).replace(/\\/g, '/')
+      };
+    });
+    res.json({ success: true, files });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── DELETE /api/upload/api-files/:filename ───────────────
+router.delete('/api-files/:filename', (req, res) => {
+  try {
+    const filePath = path.join(apiFilesDir, path.basename(req.params.filename));
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ success: true, message: 'File deleted' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 module.exports = router;
+

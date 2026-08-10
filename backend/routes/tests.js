@@ -182,10 +182,16 @@ function buildYaml(config, phases, environment) {
         flowYaml += `          headers:${headersYaml}\n`;
       }
 
-      if (['post', 'put', 'patch'].includes(method) && step.body) {
-        let bodyString = typeof step.body === 'string' ? step.body : JSON.stringify(step.body, null, 2);
-        const indentedBody = bodyString.split('\n').map(line => `            ${line}`).join('\n');
-        flowYaml += `          json:\n${indentedBody}\n`;
+      if (['post', 'put', 'patch'].includes(method)) {
+        if (step.bodyType === 'formData' && Array.isArray(step.formDataParams) && step.formDataParams.length > 0) {
+          let formDataString = JSON.stringify(step.formDataParams, null, 2);
+          const indentedFormData = formDataString.split('\n').map(line => `            ${line}`).join('\n');
+          flowYaml += `          formDataParams:\n${indentedFormData}\n`;
+        } else if (step.body) {
+          let bodyString = typeof step.body === 'string' ? step.body : JSON.stringify(step.body, null, 2);
+          const indentedBody = bodyString.split('\n').map(line => `            ${line}`).join('\n');
+          flowYaml += `          json:\n${indentedBody}\n`;
+        }
       }
 
       if (step.capture && Array.isArray(step.capture) && step.capture.length > 0) {
@@ -227,13 +233,20 @@ function buildYaml(config, phases, environment) {
       flowYaml += `          headers:${headersYaml}\n`;
     }
 
-    if (['post', 'put', 'patch'].includes(method) && config.body) {
-      let bodyString = typeof config.body === 'string' ? config.body : JSON.stringify(config.body, null, 2);
-      if (bodyString && bodyString !== '{}') {
-        const indentedBody = bodyString.split('\n').map(line => `            ${line}`).join('\n');
-        flowYaml += `          json:\n${indentedBody}\n`;
+    if (['post', 'put', 'patch'].includes(method)) {
+      if (config.bodyType === 'formData' && Array.isArray(config.formDataParams) && config.formDataParams.length > 0) {
+        let formDataString = JSON.stringify(config.formDataParams, null, 2);
+        const indentedFormData = formDataString.split('\n').map(line => `            ${line}`).join('\n');
+        flowYaml += `          formDataParams:\n${indentedFormData}\n`;
+      } else if (config.body) {
+        let bodyString = typeof config.body === 'string' ? config.body : JSON.stringify(config.body, null, 2);
+        if (bodyString && bodyString !== '{}') {
+          const indentedBody = bodyString.split('\n').map(line => `            ${line}`).join('\n');
+          flowYaml += `          json:\n${indentedBody}\n`;
+        }
       }
     }
+
     flowYaml += `          beforeRequest: "beforeStep"\n`;
     flowYaml += `          afterResponse: "logResponse"\n`;
     flowYaml += `      - think: 1\n`;

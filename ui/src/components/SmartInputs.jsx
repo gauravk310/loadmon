@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { API as DEFAULT_API } from '../api.js'
 
 function cleanVarKey(key) {
+
   if (typeof key !== 'string') return key
   return key.replace(/^\[\d+\]\./, '').replace(/\[\d+\]/g, '')
 }
@@ -187,3 +189,159 @@ export function SmartTextarea({ id, value, onChange, placeholder, rows, style, a
     </div>
   )
 }
+
+// ── Form Data Editor (Postman-style multipart/form-data editor) ─
+export function FormDataEditor({ params = [], onChange, allVarSuggestions, API }) {
+  const [uploadingIdx, setUploadingIdx] = useState(null)
+
+  const updateParam = (index, updates) => {
+    const next = [...params]
+    next[index] = { ...next[index], ...updates }
+    onChange(next)
+  }
+
+  const removeParam = (index) => {
+    const next = params.filter((_, i) => i !== index)
+    onChange(next)
+  }
+
+  const addParam = () => {
+    onChange([
+      ...params,
+      {
+        id: `fd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        key: '',
+        type: 'text',
+        value: '',
+        files: [],
+        enabled: true
+      }
+    ])
+  }
+
+  const handleFileUpload = async (index, fileList) => {
+    if (!fileList || fileList.length === 0) return
+    setUploadingIdx(index)
+    try {
+      const formData = new FormData()
+      for (let i = 0; i < fileList.length; i++) {
+        formData.append('files', fileList[i])
+      }
+      const apiHost = (API || DEFAULT_API || 'http://localhost:8000/api').replace(/\/+$/, '')
+      const res = await fetch(`${apiHost}/upload/api-files`, {
+
+        method: 'POST',
+        body: formData
+      })
+      const data = await res.json()
+      if (data.success && Array.isArray(data.files)) {
+        const currentFiles = params[index]?.files || []
+        updateParam(index, { files: [...currentFiles, ...data.files] })
+      } else {
+        alert(`File upload failed: ${data.error || 'Unknown error'}`)
+      }
+    } catch (err) {
+      alert(`Upload error: ${err.message}`)
+    } finally {
+      setUploadingIdx(null)
+    }
+  }
+
+  const removeFile = (paramIdx, fileIdx) => {
+    const currentFiles = params[paramIdx]?.files || []
+    const nextFiles = currentFiles.filter((_, i) => i !== fileIdx)
+    updateParam(paramIdx, { files: nextFiles })
+  }
+
+  return (
+    <div className="form-data-editor" style={{ marginTop: '0.4rem' }}>
+      <div className="form-data-table" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {params.map((p, idx) => (
+          <div key={p.id || idx} className={`kv-row form-data-row ${p.enabled === false ? 'disabled-row' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+
+            <input
+              type="checkbox"
+              checked={p.enabled !== false}
+              onChange={e => updateParam(idx, { enabled: e.target.checked })}
+              title="Enable / disable parameter"
+              style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+            />
+
+            <SmartInput
+              value={p.key}
+              onChange={val => updateParam(idx, { key: val })}
+              placeholder="Key (e.g. email or snapshots)"
+              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
+              allVarSuggestions={allVarSuggestions}
+            />
+
+            <select
+              className="form-select"
+              value={p.type || 'text'}
+              onChange={e => updateParam(idx, { type: e.target.value })}
+              style={{ width: '95px', fontSize: '0.8rem', padding: '6px 8px', borderRadius: 'var(--radius-sm)' }}
+            >
+              <option value="text">Text</option>
+              <option value="file">File</option>
+            </select>
+
+            {p.type === 'file' ? (
+              <div className="form-data-file-area" style={{ flex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-card)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                {(p.files || []).map((f, fIdx) => (
+                  <span key={f.id || fIdx} className="file-chip" style={{ background: 'rgba(34,211,238,0.12)', color: 'var(--cyan)', border: '1px solid rgba(34,211,238,0.3)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={`${f.originalName} (${Math.round((f.size || 0)/1024)} KB)`}>
+                    📁 {f.originalName || f.filename}
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}
+                      onClick={() => removeFile(idx, fIdx)}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                <label className="btn btn-xs btn-outline" style={{ cursor: 'pointer', margin: 0, padding: '3px 8px', fontSize: '0.75rem' }}>
+                  {uploadingIdx === idx ? '⏳ Uploading...' : '+ Attach Files'}
+                  <input
+                    type="file"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={e => {
+                      handleFileUpload(idx, e.target.files)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <SmartInput
+                value={p.value}
+                onChange={val => updateParam(idx, { value: val })}
+                placeholder="Value (e.g. {{email}})"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
+                allVarSuggestions={allVarSuggestions}
+              />
+            )}
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ color: 'var(--danger)' }}
+              onClick={() => removeParam(idx)}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs mt-1"
+        style={{ color: 'var(--accent-light)', marginTop: '0.4rem' }}
+        onClick={addParam}
+      >
+        + Add Form Data Field
+      </button>
+    </div>
+  )
+}
+

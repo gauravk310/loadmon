@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useApp } from '../context/AppContext.jsx'
+import { FormDataEditor } from '../components/SmartInputs.jsx'
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 
@@ -31,6 +32,10 @@ function newStep(index) {
     method: index === 0 ? 'POST' : 'GET',
     endpoint: '/api/',
     headers: index === 0 ? { 'Content-Type': 'application/json' } : {},
+    bodyType: 'json',
+    formDataParams: [
+      { id: `fd_${Date.now()}_1`, key: '', type: 'text', value: '', files: [], enabled: true }
+    ],
     body: '',
     think: 1,
     responseKeys: [],
@@ -40,6 +45,7 @@ function newStep(index) {
     resolvedUrl: null,
   }
 }
+
 
 function cleanVarKey(key) {
   if (typeof key !== 'string') return key
@@ -430,8 +436,11 @@ export default function ChainTesting() {
         method: s.method,
         endpoint: s.endpoint,
         headers: s.headers || {},
+        bodyType: s.bodyType || 'json',
+        formDataParams: s.formDataParams || [],
         body: s.body || ''
       }))
+
 
       const res = await fetch(`${API}/chains/run-data-driven`, {
         method: 'POST',
@@ -486,8 +495,15 @@ export default function ChainTesting() {
       setEditingChainId(firstChain.id)
       setChainName(firstChain.name)
       if (firstChain.steps && firstChain.steps.length > 0) {
-        setSteps(firstChain.steps.map(s => ({ ...s, runStatus: null, runError: null })))
+        setSteps(firstChain.steps.map((s, idx) => ({
+          ...s,
+          bodyType: s.bodyType || 'json',
+          formDataParams: s.formDataParams || [{ id: `fd_${idx}_1`, key: '', type: 'text', value: '', files: [], enabled: true }],
+          runStatus: null,
+          runError: null
+        })))
       }
+
     }
   }, [chains, selectedChainId])
 
@@ -701,8 +717,11 @@ export default function ChainTesting() {
         method: s.method,
         endpoint: s.endpoint,
         headers: s.headers || {},
+        bodyType: s.bodyType || 'json',
+        formDataParams: s.formDataParams || [],
         body: s.body ? (() => { try { return JSON.parse(s.body) } catch { return s.body } })() : null,
       }))
+
 
       const res = await fetch(`${API}/chains/run-step`, {
         method: 'POST',
@@ -774,6 +793,8 @@ export default function ChainTesting() {
         method: s.method,
         endpoint: s.endpoint,
         headers: s.headers || {},
+        bodyType: s.bodyType || 'json',
+        formDataParams: s.formDataParams || [],
         body: s.body || '',
         think: s.think ?? 1,
         responseKeys: s.responseKeys || [],
@@ -797,12 +818,15 @@ export default function ChainTesting() {
     if (!chain) return
     setEditingChainId(chain.id)
     setChainName(chain.name)
-    setSteps(chain.steps.map(s => ({
+    setSteps((chain.steps || []).map((s, idx) => ({
       ...s,
+      bodyType: s.bodyType || 'json',
+      formDataParams: s.formDataParams || [{ id: `fd_${idx}_1`, key: '', type: 'text', value: '', files: [], enabled: true }],
       runStatus: null, runError: null
     })))
     setExpandedStepId(chain.steps[0]?.id || null)
   }
+
 
   const startNewChain = () => {
     setEditingChainId(null)
@@ -1079,8 +1103,8 @@ export default function ChainTesting() {
               const calcCount = isCount ? (Number(dataArrivalCount) || 0) : (Number(dataDuration) || 0) * (Number(dataArrivalRate) || 0)
               const isExceeded = calcCount > (Number(objectLimit) || 0)
               return (
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 flex-wrap">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-primary"
                       onClick={handleExtractData}
@@ -1189,26 +1213,29 @@ export default function ChainTesting() {
                       {isCount
                         ? (isExceeded
                             ? `⚠️ arrivalCount = ${dataArrivalCount} VUs > Limit (${objectLimit})`
-                            : `Total (arrivalCount): ${dataArrivalCount} VUs / ${objectLimit} max`)
+                            : `Total: ${dataArrivalCount} VUs / ${objectLimit} max`)
                         : (isExceeded
                             ? `⚠️ ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} > Limit (${objectLimit})`
-                            : `Total (arrivalRate): ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} / ${objectLimit} max`)}
+                            : `Total: ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} / ${objectLimit} max`)}
                     </div>
                   </div>
 
-                  <button
-                    className="btn btn-success btn-lg"
-                    onClick={handleRunDataDrivenChain}
-                    disabled={dataDrivenRunning || (!extractedObjects.length && !jsonInput.trim()) || isExceeded}
-                    style={{ minWidth: 200 }}
-                  >
-                    {dataDrivenRunning ? '⏳ Executing Objects…' : '▶️ Run Data-Driven Chain'}
-                  </button>
+                  <div>
+                    <button
+                      className="btn btn-success btn-lg"
+                      onClick={handleRunDataDrivenChain}
+                      disabled={dataDrivenRunning || (!extractedObjects.length && !jsonInput.trim()) || isExceeded}
+                      style={{ minWidth: 220, justifyContent: 'center' }}
+                    >
+                      {dataDrivenRunning ? '⏳ Executing Objects…' : '▶️ Run Data-Driven Chain'}
+                    </button>
+                  </div>
                 </div>
               )
             })()}
 
             {dataDrivenError && (
+
               <div className="card card-p mt-3" style={{ borderColor: 'var(--danger)', background: 'var(--danger-dim)', color: 'var(--danger)', padding: '0.6rem 1rem', fontSize: '0.82rem' }}>
                 ❌ {dataDrivenError}
               </div>
@@ -1394,20 +1421,64 @@ export default function ChainTesting() {
 
                       {/* Body */}
                       {['POST', 'PUT', 'PATCH'].includes(step.method) && (
-                        <div className="form-group">
-                          <label className="form-label">
-                            JSON Body — type <code style={{ color: 'var(--accent-light)' }}>{'{{'}</code> to reference variables
-                          </label>
-                          <SmartTextarea
-                            value={step.body}
-                            onChange={val => updateStep(step.id, { body: val })}
-                            rows={4}
-                            placeholder={'{\n  "email": "{{email}}",\n  "password": "{{password}}"\n}'}
-                            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
-                            allVarSuggestions={varSuggestions}
-                          />
+                        <div className="form-group" style={{ marginBottom: '1.2rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <label className="form-label" style={{ marginBottom: 0 }}>
+                              Request Body — type <code style={{ color: 'var(--accent-light)' }}>{'{{'}</code> to reference variables
+                            </label>
+                            <div style={{ display: 'flex', gap: '0.4rem', background: 'var(--bg-card)', padding: '3px 6px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                              <button
+                                type="button"
+                                className={`btn btn-xs ${step.bodyType !== 'formData' ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => updateStep(step.id, { bodyType: 'json' })}
+                                style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                              >
+                                JSON (raw)
+                              </button>
+                              <button
+                                type="button"
+                                className={`btn btn-xs ${step.bodyType === 'formData' ? 'btn-primary' : 'btn-ghost'}`}
+                                onClick={() => {
+                                  const cleanHeaders = { ...(step.headers || {}) }
+                                  Object.keys(cleanHeaders).forEach(h => {
+                                    if (h.toLowerCase() === 'content-type') delete cleanHeaders[h]
+                                  })
+                                  updateStep(step.id, {
+                                    bodyType: 'formData',
+                                    headers: cleanHeaders,
+                                    formDataParams: (step.formDataParams && step.formDataParams.length > 0)
+                                      ? step.formDataParams
+                                      : [{ id: `fd_${Date.now()}_1`, key: '', type: 'text', value: '', files: [], enabled: true }]
+                                  })
+                                }}
+                                style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                              >
+                                Form Data (multipart)
+                              </button>
+
+                            </div>
+                          </div>
+
+                          {step.bodyType === 'formData' ? (
+                            <FormDataEditor
+                              params={step.formDataParams || []}
+                              onChange={params => updateStep(step.id, { formDataParams: params })}
+                              allVarSuggestions={varSuggestions}
+                              API={API}
+                            />
+                          ) : (
+                            <SmartTextarea
+                              value={step.body}
+                              onChange={val => updateStep(step.id, { body: val })}
+                              rows={4}
+                              placeholder={'{\n  "email": "{{email}}",\n  "password": "{{password}}"\n}'}
+                              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}
+                              allVarSuggestions={varSuggestions}
+                            />
+                          )}
                         </div>
                       )}
+
 
                       {/* Variable preview from previous steps & authenticated users */}
                       {varSuggestions.length > 0 && (

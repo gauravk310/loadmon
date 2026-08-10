@@ -285,8 +285,54 @@ function beforeStep(requestParams, context, ee, next) {
     }
   }
 
+  // Resolve formDataParams placeholders and multi-file attachments
+  if (requestParams.formDataParams && Array.isArray(requestParams.formDataParams)) {
+    const formData = {};
+    requestParams.formDataParams.forEach(param => {
+      if (param.enabled === false || !param.key || !param.key.trim()) return;
+      const key = param.key.trim();
+      if (param.type === 'file') {
+        const files = Array.isArray(param.files) ? param.files : (param.file ? [param.file] : []);
+        const fileEntries = [];
+        files.forEach(f => {
+          let filePath = null;
+          if (typeof f === 'string') {
+            filePath = path.isAbsolute(f) ? f : path.join(__dirname, '..', f);
+          } else if (f && typeof f === 'object') {
+            const rel = f.relativePath || f.path;
+            if (rel) {
+              filePath = path.isAbsolute(rel) ? rel : path.join(__dirname, '..', rel);
+            } else if (f.filename) {
+              filePath = path.join(__dirname, '..', 'uploads', 'api_files', f.filename);
+            }
+          }
+          if (filePath && fs.existsSync(filePath)) {
+            fileEntries.push({ fromFile: filePath });
+          }
+        });
+        if (fileEntries.length === 1) {
+          formData[key] = fileEntries[0];
+        } else if (fileEntries.length > 1) {
+          formData[key] = fileEntries;
+        }
+      } else {
+        formData[key] = resolveValue(String(param.value ?? ''));
+      }
+    });
+    requestParams.formData = formData;
+    if (requestParams.headers) {
+      Object.keys(requestParams.headers).forEach(h => {
+        if (h.toLowerCase() === 'content-type') {
+          delete requestParams.headers[h];
+        }
+      });
+    }
+  }
+
   return next();
 }
+
+
 
 // ── logResponse ───────────────────────────────────────────
 function logResponse(requestParams, response, context, ee, next) {

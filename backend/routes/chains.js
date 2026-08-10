@@ -6,9 +6,11 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+const FormData = require('form-data');
 
 const chainsPath = path.join(__dirname, '..', 'chains.json');
 const configPath = path.join(__dirname, '..', 'config.json');
+const uploadsDir = path.join(__dirname, '..', 'uploads');
 
 // ── Helper: load config ────────────────────────────────────
 function loadConfig() {
@@ -240,7 +242,7 @@ function randomPublicIPv4() {
 }
 
 // ── Helper: make HTTP request ─────────────────────────────
-function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
+function proxyRequest({ serverUrl, endpoint, method, headers, body, bodyType, formDataParams, appUrl }) {
   return new Promise((resolve, reject) => {
     const fullUrl = serverUrl.replace(/\/$/, '') + endpoint;
     let parsedUrl;
@@ -252,7 +254,54 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
 
     const isHttps = parsedUrl.protocol === 'https:';
     const lib = isHttps ? https : http;
-    const bodyStr = body && typeof body === 'object' ? JSON.stringify(body) : (body || '');
+    const upperMethod = method ? method.toUpperCase() : 'GET';
+    const isFormData = ['POST', 'PUT', 'PATCH'].includes(upperMethod) &&
+      (bodyType === 'formData' || (Array.isArray(formDataParams) && formDataParams.length > 0));
+
+    let form = null;
+    let formHeaders = {};
+
+    if (isFormData) {
+      form = new FormData();
+      (formDataParams || []).forEach(param => {
+        if (param.enabled === false || !param.key || !param.key.trim()) return;
+        const key = param.key.trim();
+
+        if (param.type === 'file') {
+          const files = Array.isArray(param.files) ? param.files : (param.file ? [param.file] : []);
+          files.forEach(f => {
+            let filePath = null;
+            if (typeof f === 'string') {
+              filePath = path.isAbsolute(f) ? f : path.join(__dirname, '..', f);
+            } else if (f && typeof f === 'object') {
+              const rel = f.relativePath || f.path;
+              if (rel) {
+                filePath = path.isAbsolute(rel) ? rel : path.join(__dirname, '..', rel);
+              } else if (f.filename) {
+                filePath = path.join(uploadsDir, 'api_files', f.filename);
+              }
+            }
+
+            if (filePath && fs.existsSync(filePath)) {
+              const stream = fs.createReadStream(filePath);
+              const filename = f.originalName || f.originalname || f.filename || path.basename(filePath);
+              const options = { filename };
+              if (f.mimeType || f.mimetype) options.contentType = f.mimeType || f.mimetype;
+              form.append(key, stream, options);
+            } else {
+              console.warn(`File not found for form field "${key}":`, filePath || f);
+            }
+          });
+        } else {
+          // text field
+          form.append(key, String(param.value ?? ''));
+        }
+      });
+
+      formHeaders = form.getHeaders();
+    }
+
+    const bodyStr = !isFormData && body && typeof body === 'object' ? JSON.stringify(body) : (body || '');
 
     // ── Build request headers that mimic a real browser/Artillery request ──
     const defaultOrigin = appUrl
@@ -262,11 +311,16 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
     const cfg = loadConfig();
 
     const reqHeaders = {
-      'Content-Type': 'application/json',
       'Accept': 'application/json, text/plain, */*',
       'User-Agent': 'LoadMon/1.0 (Chain Builder)',
       'Host': parsedUrl.hostname,
     };
+
+    if (!isFormData) {
+      reqHeaders['Content-Type'] = 'application/json';
+    } else {
+      Object.assign(reqHeaders, formHeaders);
+    }
 
     if (cfg.randomIp !== false) {
       reqHeaders['X-Forwarded-For'] = randomPublicIPv4();
@@ -281,6 +335,9 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
     if (headers && typeof headers === 'object') {
       for (const [k, v] of Object.entries(headers)) {
         if (k && k.trim() && v !== undefined && v !== null && v !== '') {
+          if (isFormData && k.toLowerCase() === 'content-type') {
+            continue; // Do not overwrite form-data multipart boundary with custom Content-Type
+          }
           const existingKey = Object.keys(reqHeaders).find(h => h.toLowerCase() === k.toLowerCase());
           if (existingKey) delete reqHeaders[existingKey];
           reqHeaders[k] = v;
@@ -288,7 +345,8 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
       }
     }
 
-    if (bodyStr) {
+
+    if (!isFormData && bodyStr) {
       reqHeaders['Content-Length'] = Buffer.byteLength(bodyStr);
     }
 
@@ -296,7 +354,7 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
       hostname: parsedUrl.hostname,
       port: parsedUrl.port || (isHttps ? 443 : 80),
       path: parsedUrl.pathname + parsedUrl.search,
-      method: method.toUpperCase(),
+      method: upperMethod,
       headers: reqHeaders,
       timeout: 30000,
     };
@@ -328,12 +386,17 @@ function proxyRequest({ serverUrl, endpoint, method, headers, body, appUrl }) {
 
     req.on('error', reject);
 
-    if (bodyStr && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
-      req.write(bodyStr);
+    if (isFormData && form) {
+      form.pipe(req);
+    } else {
+      if (bodyStr && ['POST', 'PUT', 'PATCH'].includes(upperMethod)) {
+        req.write(bodyStr);
+      }
+      req.end();
     }
-    req.end();
   });
 }
+
 
 // ── GET /api/chains — list all chains ────────────────────
 router.get('/', (req, res) => {
@@ -476,12 +539,22 @@ router.post('/run-step', async (req, res) => {
       }
     }
 
-    // Resolve body
+    // Resolve body & form-data
     let resolvedBody = null;
-    if (['POST', 'PUT', 'PATCH'].includes(method) && step.body) {
-      const rawBody = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
-      const resolvedBodyStr = resolveVars(rawBody, context);
-      try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+    let resolvedFormDataParams = null;
+    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+      if (step.bodyType === 'formData' && Array.isArray(step.formDataParams)) {
+        resolvedFormDataParams = step.formDataParams.map(p => {
+          if (p && p.type === 'text') {
+            return { ...p, value: resolveVars(p.value || '', context) };
+          }
+          return p;
+        });
+      } else if (step.body) {
+        const rawBody = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
+        const resolvedBodyStr = resolveVars(rawBody, context);
+        try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+      }
     }
 
     try {
@@ -491,8 +564,11 @@ router.post('/run-step', async (req, res) => {
         method,
         headers: resolvedHeaders,
         body: resolvedBody,
+        bodyType: step.bodyType,
+        formDataParams: resolvedFormDataParams,
         appUrl  // used to set Origin header so target CORS middleware accepts the request
       });
+
 
       // Extract response keys for autocomplete
       const responseKeys = result.json ? flattenKeys(result.json) : [];
@@ -764,10 +840,20 @@ router.post('/run-data-driven', async (req, res) => {
         }
 
         let resolvedBody = null;
-        if (['POST', 'PUT', 'PATCH'].includes(method) && step.body) {
-          const rawBodyStr = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
-          const resolvedBodyStr = resolveVars(rawBodyStr, objectContext);
-          try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+        let resolvedFormDataParams = null;
+        if (['POST', 'PUT', 'PATCH'].includes(method)) {
+          if (step.bodyType === 'formData' && Array.isArray(step.formDataParams)) {
+            resolvedFormDataParams = step.formDataParams.map(p => {
+              if (p && p.type === 'text') {
+                return { ...p, value: resolveVars(p.value || '', objectContext) };
+              }
+              return p;
+            });
+          } else if (step.body) {
+            const rawBodyStr = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
+            const resolvedBodyStr = resolveVars(rawBodyStr, objectContext);
+            try { resolvedBody = JSON.parse(resolvedBodyStr); } catch { resolvedBody = resolvedBodyStr; }
+          }
         }
 
         const stepStartTime = new Date().toISOString();
@@ -778,8 +864,11 @@ router.post('/run-data-driven', async (req, res) => {
             method,
             headers: resolvedHeaders,
             body: resolvedBody,
+            bodyType: step.bodyType,
+            formDataParams: resolvedFormDataParams,
             appUrl
           });
+
 
           const duration = result.durationMs || 0;
           objectTotalDurationMs += duration;

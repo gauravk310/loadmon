@@ -114,17 +114,22 @@ code, pre { font-family: var(--font-mono); }
 
 .main-content {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg-base);
   position: relative;
 }
 
 .page-wrapper {
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   max-width: 1400px;
+  width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   min-height: 100%;
 }
+
 
 /* ── Gradient mesh background ──────────────────────────── */
 .bg-mesh {
@@ -1238,4 +1243,25 @@ tbody tr:last-child td { border-bottom: none; }
   animation: spin 1s linear infinite;
   display: inline-block;
 }
+
+/* ── Form Data Multipart Editor ─────────────────────────── */
+.form-data-editor {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem;
+}
+.form-data-row {
+  transition: opacity 0.15s ease;
+}
+.form-data-row.disabled-row {
+  opacity: 0.45;
+}
+.file-chip {
+  transition: all 0.15s ease;
+}
+.file-chip:hover {
+  background: rgba(34, 211, 238, 0.2) !important;
+}
+
 

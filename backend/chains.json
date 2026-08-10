@@ -145,5 +145,106 @@
     ],
     "createdAt": "2026-08-08T14:31:27.376Z",
     "updatedAt": "2026-08-08T14:31:27.376Z"
+  },
+  {
+    "id": "chain_1786346359654",
+    "name": "upload-proctor-snapshots",
+    "appId": "app_default",
+    "serverUrl": "https://grademeai-qabe.onrender.com",
+    "appUrl": "https://grademeai-qafe.onrender.com",
+    "steps": [
+      {
+        "id": "step_1786345974351_0",
+        "name": "upload-proctor-snapshots",
+        "method": "POST",
+        "endpoint": "/api/score/upload-proctor-snapshots",
+        "headers": {},
+        "bodyType": "formData",
+        "formDataParams": [
+          {
+            "id": "fd_1786347520760_1",
+            "key": "testId",
+            "type": "text",
+            "value": "{{testId}}",
+            "files": [],
+            "enabled": true
+          },
+          {
+            "id": "fd_1786347547737_ep9c",
+            "key": "studentId",
+            "type": "text",
+            "value": "{{user.id}}",
+            "files": [],
+            "enabled": true
+          },
+          {
+            "id": "fd_1786347548288_an00",
+            "key": "capturedTimestamps",
+            "type": "text",
+            "value": "1786265861326",
+            "files": [],
+            "enabled": true
+          },
+          {
+            "id": "fd_1786347549113_u9h0",
+            "key": "snapshots",
+            "type": "file",
+            "value": "",
+            "files": [
+              {
+                "id": "Screenshot_2025-11-08_213041_1786347601322_948524.png",
+                "filename": "Screenshot_2025-11-08_213041_1786347601322_948524.png",
+                "originalName": "Screenshot 2025-11-08 213041.png",
+                "mimeType": "image/png",
+                "size": 141475,
+                "relativePath": "uploads/api_files/Screenshot_2025-11-08_213041_1786347601322_948524.png"
+              },
+              {
+                "id": "Screenshot_2025-11-08_213041_1786348133088_198530.png",
+                "filename": "Screenshot_2025-11-08_213041_1786348133088_198530.png",
+                "originalName": "Screenshot 2025-11-08 213041.png",
+                "mimeType": "image/png",
+                "size": 141475,
+                "relativePath": "uploads/api_files/Screenshot_2025-11-08_213041_1786348133088_198530.png"
+              },
+              {
+                "id": "Screenshot_2025-11-14_211045_1786348133092_915453.png",
+                "filename": "Screenshot_2025-11-14_211045_1786348133092_915453.png",
+                "originalName": "Screenshot 2025-11-14 211045.png",
+                "mimeType": "image/png",
+                "size": 86786,
+                "relativePath": "uploads/api_files/Screenshot_2025-11-14_211045_1786348133092_915453.png"
+              },
+              {
+                "id": "Screenshot_2025-11-14_212106_1786348133093_159178.png",
+                "filename": "Screenshot_2025-11-14_212106_1786348133093_159178.png",
+                "originalName": "Screenshot 2025-11-14 212106.png",
+                "mimeType": "image/png",
+                "size": 92648,
+                "relativePath": "uploads/api_files/Screenshot_2025-11-14_212106_1786348133093_159178.png"
+              },
+              {
+                "id": "Screenshot_2025-11-22_145832_1786348133103_942586.png",
+                "filename": "Screenshot_2025-11-22_145832_1786348133103_942586.png",
+                "originalName": "Screenshot 2025-11-22 145832.png",
+                "mimeType": "image/png",
+                "size": 172009,
+                "relativePath": "uploads/api_files/Screenshot_2025-11-22_145832_1786348133103_942586.png"
+              }
+            ],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "message",
+          "uploaded",
+          "total"
+        ]
+      }
+    ],
+    "createdAt": "2026-08-10T07:19:19.654Z",
+    "updatedAt": "2026-08-10T07:49:22.051Z"
   }
 ]

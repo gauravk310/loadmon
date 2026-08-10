@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext.jsx'
-import { SmartInput, SmartTextarea } from '../components/SmartInputs.jsx'
+import { SmartInput, SmartTextarea, FormDataEditor } from '../components/SmartInputs.jsx'
 
 function defaultBaseSteps() {
   return [
@@ -10,6 +10,8 @@ function defaultBaseSteps() {
       method: 'POST',
       endpoint: '/api/auth/signin',
       headersText: '{\n  "Content-Type": "application/json"\n}',
+      bodyType: 'json',
+      formDataParams: [{ id: 'fd_1', key: '', type: 'text', value: '', files: [], enabled: true }],
       bodyText: '{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}',
       think: 1
     },
@@ -19,6 +21,8 @@ function defaultBaseSteps() {
       method: 'GET',
       endpoint: '/api/class/list',
       headersText: '',
+      bodyType: 'json',
+      formDataParams: [{ id: 'fd_2', key: '', type: 'text', value: '', files: [], enabled: true }],
       bodyText: '',
       think: 1
     }
@@ -30,7 +34,7 @@ function defaultPhases() {
 }
 
 export default function Configure() {
-  const { config, saveConfig, baseStatus, runBaseConfig } = useApp()
+  const { config, saveConfig, baseStatus, runBaseConfig, API } = useApp()
   const [form, setForm]       = useState(null)
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
@@ -211,6 +215,8 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
         method:          config.method || 'POST',
         targetEndpoint:  config.targetEndpoint || '/api/auth/signin',
         headersText:     typeof config.headers === 'string' ? config.headers : JSON.stringify(config.headers || { 'Content-Type': 'application/json' }, null, 2),
+        bodyType:        config.bodyType || 'json',
+        formDataParams:  config.formDataParams || [{ id: 'fd_cfg_1', key: '', type: 'text', value: '', files: [], enabled: true }],
         bodyText:        typeof config.body === 'string' ? config.body : JSON.stringify(config.body || { email: '{{ email }}', password: '{{ password }}' }, null, 2),
         httpTimeout:     config.httpTimeout || 30,
         maxSockets:      config.maxSockets || 5000,
@@ -227,6 +233,8 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
               method: s.method || 'GET',
               endpoint: s.endpoint || '/api/',
               headersText: typeof s.headers === 'string' ? s.headers : JSON.stringify(s.headers || {}, null, 2),
+              bodyType: s.bodyType || 'json',
+              formDataParams: s.formDataParams || [{ id: `fd_${idx}_1`, key: '', type: 'text', value: '', files: [], enabled: true }],
               bodyText: typeof s.body === 'string' ? s.body : (s.body ? JSON.stringify(s.body, null, 2) : ''),
               think: s.think ?? 1
             }))
@@ -234,6 +242,7 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
       })
     }
   }, [config, form])
+
 
   if (!form) {
     return (
@@ -432,6 +441,8 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
         endpoint: s.endpoint,
         headers: h,
         headersText: s.headersText,
+        bodyType: s.bodyType || 'json',
+        formDataParams: s.formDataParams || [],
         body: b,
         bodyText: s.bodyText,
         think: s.think
@@ -484,11 +495,14 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
         endpoint: s.endpoint,
         headers: h,
         headersText: s.headersText,
+        bodyType: s.bodyType || 'json',
+        formDataParams: s.formDataParams || [],
         body: b,
         bodyText: s.bodyText,
         think: s.think
       }
     })
+
 
     return {
       ...form,
@@ -919,17 +933,53 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
 
                   {['POST', 'PUT', 'PATCH'].includes((step.method || 'GET').toUpperCase()) ? (
                     <div className="form-group">
-                      <label className="form-label">Body (JSON)</label>
-                      <SmartTextarea
-                        rows={3}
-                        style={{ fontSize: '0.8rem' }}
-                        value={step.bodyText || ''}
-                        onChange={val => updateBaseStep(sIdx, 'bodyText', val)}
-                        placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}'
-                        allVarSuggestions={allVarSuggestions}
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                        <label className="form-label" style={{ marginBottom: 0 }}>Request Body</label>
+                        <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--bg-card)', padding: '2px 4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                          <button
+                            type="button"
+                            className={`btn btn-xs ${step.bodyType !== 'formData' ? 'btn-primary' : 'btn-ghost'}`}
+                            onClick={() => updateBaseStep(sIdx, 'bodyType', 'json')}
+                            style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+                          >
+                            JSON
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-xs ${step.bodyType === 'formData' ? 'btn-primary' : 'btn-ghost'}`}
+                            onClick={() => {
+                              updateBaseStep(sIdx, 'bodyType', 'formData')
+                              if (!step.formDataParams || step.formDataParams.length === 0) {
+                                updateBaseStep(sIdx, 'formDataParams', [{ id: `fd_${sIdx}_1`, key: '', type: 'text', value: '', files: [], enabled: true }])
+                              }
+                            }}
+                            style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+                          >
+                            Form Data
+                          </button>
+                        </div>
+                      </div>
+
+                      {step.bodyType === 'formData' ? (
+                        <FormDataEditor
+                          params={step.formDataParams || []}
+                          onChange={params => updateBaseStep(sIdx, 'formDataParams', params)}
+                          allVarSuggestions={allVarSuggestions}
+                          API={API}
+                        />
+                      ) : (
+                        <SmartTextarea
+                          rows={3}
+                          style={{ fontSize: '0.8rem' }}
+                          value={step.bodyText || ''}
+                          onChange={val => updateBaseStep(sIdx, 'bodyText', val)}
+                          placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}"\n}'
+                          allVarSuggestions={allVarSuggestions}
+                        />
+                      )}
                     </div>
                   ) : (
+
                     <div className="form-group">
                       <label className="form-label">Think Time (seconds)</label>
                       <input
@@ -1134,18 +1184,54 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="textarea-body">Request Body (JSON)</label>
-              <SmartTextarea
-                id="textarea-body"
-                rows={5}
-                value={form.bodyText || ''}
-                onChange={val => set('bodyText', val)}
-                placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}",\n  "classId": "{{ classId }}"\n}'
-                allVarSuggestions={allVarSuggestions}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <label className="form-label" htmlFor="textarea-body" style={{ marginBottom: 0 }}>Request Body</label>
+                <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--bg-card)', padding: '2px 4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    className={`btn btn-xs ${form.bodyType !== 'formData' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => set('bodyType', 'json')}
+                    style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+                  >
+                    JSON
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-xs ${form.bodyType === 'formData' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => {
+                      set('bodyType', 'formData')
+                      if (!form.formDataParams || form.formDataParams.length === 0) {
+                        set('formDataParams', [{ id: 'fd_cfg_1', key: '', type: 'text', value: '', files: [], enabled: true }])
+                      }
+                    }}
+                    style={{ fontSize: '0.7rem', padding: '1px 6px' }}
+                  >
+                    Form Data
+                  </button>
+                </div>
+              </div>
+
+              {form.bodyType === 'formData' ? (
+                <FormDataEditor
+                  params={form.formDataParams || []}
+                  onChange={params => set('formDataParams', params)}
+                  allVarSuggestions={allVarSuggestions}
+                  API={API}
+                />
+              ) : (
+                <SmartTextarea
+                  id="textarea-body"
+                  rows={5}
+                  value={form.bodyText || ''}
+                  onChange={val => set('bodyText', val)}
+                  placeholder='{\n  "email": "{{ email }}",\n  "password": "{{ password }}",\n  "classId": "{{ classId }}"\n}'
+                  allVarSuggestions={allVarSuggestions}
+                />
+              )}
             </div>
           </div>
         </div>
+
 
         {/* ── HTTP Networking Engine Settings ─────────────── */}
         <div className="card card-p">

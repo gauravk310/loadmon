@@ -125,6 +125,7 @@ class MetricsParser {
 
 // ── Build dynamic YAML from config + phases ───────────────
 function buildYaml(config, phases, environment) {
+  const mode = config?.arrivalMode || 'arrivalRate';
   let phasesYaml = '';
   if (phases && phases.length > 0) {
     phases.forEach(p => {
@@ -133,17 +134,27 @@ function buildYaml(config, phases, environment) {
         return;
       }
       phasesYaml += `\n        - duration: ${p.duration !== undefined ? p.duration : 1}`;
-      if (p.arrivalCount !== undefined && p.arrivalCount !== null) {
-        phasesYaml += `\n          arrivalCount: ${p.arrivalCount}`;
-      } else if (p.arrivalRate !== undefined && p.arrivalRate !== null) {
-        phasesYaml += `\n          arrivalRate: ${p.arrivalRate}`;
+      if (mode === 'arrivalCount') {
+        if (p.arrivalCount !== undefined && p.arrivalCount !== null && p.arrivalCount !== '') {
+          phasesYaml += `\n          arrivalCount: ${p.arrivalCount}`;
+        } else if (p.arrivalRate !== undefined && p.arrivalRate !== null && p.arrivalRate !== '') {
+          phasesYaml += `\n          arrivalRate: ${p.arrivalRate}`;
+        }
+      } else {
+        if (p.arrivalRate !== undefined && p.arrivalRate !== null && p.arrivalRate !== '') {
+          phasesYaml += `\n          arrivalRate: ${p.arrivalRate}`;
+        } else if (p.arrivalCount !== undefined && p.arrivalCount !== null && p.arrivalCount !== '') {
+          phasesYaml += `\n          arrivalCount: ${p.arrivalCount}`;
+        }
       }
-      if (p.rampTo) phasesYaml += `\n          rampTo: ${p.rampTo}`;
+      if (p.rampTo && mode !== 'arrivalCount') phasesYaml += `\n          rampTo: ${p.rampTo}`;
       if (p.maxVusers) phasesYaml += `\n          maxVusers: ${p.maxVusers}`;
       if (p.name) phasesYaml += `\n          name: "${p.name}"`;
     });
   } else {
-    phasesYaml = `\n        - duration: 30\n          arrivalRate: 5\n          name: "Quick Test"`;
+    phasesYaml = mode === 'arrivalCount'
+      ? `\n        - duration: 30\n          arrivalCount: 50\n          name: "Quick Test"`
+      : `\n        - duration: 30\n          arrivalRate: 5\n          name: "Quick Test"`;
   }
 
   let flowYaml = '      - function: "assignUser"\n';

@@ -861,6 +861,10 @@ function MetricCard({ label, value, unit, color = 'default', icon }) {
 }
 
 function PhaseChip({ phase, index }) {
+  const metricDisplay = phase.arrivalCount !== undefined && phase.arrivalCount !== null
+    ? `${phase.arrivalCount} VUs`
+    : `${phase.arrivalRate || 5}/s${phase.rampTo ? ` → ${phase.rampTo}/s` : ''}`
+
   return (
     <div style={{
       background: 'var(--bg-overlay)',
@@ -872,7 +876,7 @@ function PhaseChip({ phase, index }) {
       <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', marginBottom: 2 }}>Phase {index + 1}</div>
       <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{phase.name || 'Unnamed'}</div>
       <div style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', marginTop: 2 }}>
-        {phase.duration}s · {phase.arrivalRate}/s{phase.rampTo ? ` → ${phase.rampTo}/s` : ''}
+        {phase.duration}s · {metricDisplay}
       </div>
     </div>
   )

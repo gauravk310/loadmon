@@ -215,6 +215,7 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
         httpTimeout:     config.httpTimeout || 30,
         maxSockets:      config.maxSockets || 5000,
         randomIp:        config.randomIp ?? false,
+        arrivalMode:     config.arrivalMode || 'arrivalRate',
         phases:          config.phases || defaultPhases(),
         useBaseConfig:   config.useBaseConfig ?? false,
         baseNumUsers:    config.baseNumUsers || 10,
@@ -339,7 +340,32 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
     set('phases', phases)
   }
 
-  const addPhase = () => set('phases', [...form.phases, { duration: 30, arrivalRate: 5, name: '' }])
+  const handleToggleArrivalMode = (mode) => {
+    setForm(f => {
+      const updatedPhases = (f.phases || []).map(p => {
+        if (mode === 'arrivalCount') {
+          const countVal = p.arrivalCount || (p.arrivalRate ? p.arrivalRate * (p.duration || 30) : 50)
+          const copy = { ...p, arrivalCount: countVal }
+          delete copy.arrivalRate
+          return copy
+        } else {
+          const rateVal = p.arrivalRate || (p.arrivalCount ? Math.max(1, Math.round(p.arrivalCount / (p.duration || 30))) : 5)
+          const copy = { ...p, arrivalRate: rateVal }
+          delete copy.arrivalCount
+          return copy
+        }
+      })
+      return { ...f, arrivalMode: mode, phases: updatedPhases }
+    })
+  }
+
+  const addPhase = () => {
+    const isCount = form?.arrivalMode === 'arrivalCount'
+    const newPhase = isCount
+      ? { duration: 30, arrivalCount: 50, name: '' }
+      : { duration: 30, arrivalRate: 5, name: '' }
+    set('phases', [...form.phases, newPhase])
+  }
   const removePhase = (i) => set('phases', form.phases.filter((_, idx) => idx !== i))
 
   // ── Auto-save Random IP toggle ─────────────────────────
@@ -1162,13 +1188,44 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
 
         {/* ── Default Phases ──────────────────────────── */}
         <div className="card card-p">
-          <div className="flex items-center justify-between mb-2">
-            <h3 style={{ color: 'var(--text-secondary)' }}>🚀 Default Phase Configuration</h3>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div>
+              <h3 style={{ color: 'var(--text-secondary)' }}>🚀 Default Phase Configuration</h3>
+              <p className="text-sm text-muted mb-0">
+                These phases are used when starting a load test with "Default Config" preset on the Dashboard.
+              </p>
+            </div>
             <button className="btn btn-ghost btn-sm" onClick={addPhase}>+ Add Phase</button>
           </div>
-          <p className="text-sm text-muted mb-2">
-            These phases are used when starting a load test with "Default Config" preset on the Dashboard.
-          </p>
+
+          {/* Metric Switch */}
+          <div className="flex items-center justify-between gap-3 mb-3 mt-2 flex-wrap" style={{ background: 'var(--bg-overlay)', padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: '1.1rem' }}>🎛️</span>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Arrival Load Metric</div>
+                <div className="text-sm text-muted" style={{ fontSize: '0.75rem' }}>Select whether to configure load using rate per second or total count</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1" style={{ background: 'var(--bg-card)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <button
+                type="button"
+                className={`btn btn-xs ${form.arrivalMode !== 'arrivalCount' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => handleToggleArrivalMode('arrivalRate')}
+                style={{ padding: '4px 12px', fontSize: '0.78rem' }}
+              >
+                📈 Rate (arrivalRate /s)
+              </button>
+              <button
+                type="button"
+                className={`btn btn-xs ${form.arrivalMode === 'arrivalCount' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => handleToggleArrivalMode('arrivalCount')}
+                style={{ padding: '4px 12px', fontSize: '0.78rem' }}
+              >
+                ⚡ Count (arrivalCount VUs)
+              </button>
+            </div>
+          </div>
 
           {form.phases.map((phase, i) => (
             <div key={i} className="phase-row" style={{ marginBottom: '0.75rem' }}>
@@ -1177,16 +1234,26 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
                 <input type="number" className="form-input" value={phase.duration || ''}
                   onChange={e => setPhase(i, 'duration', e.target.value)} min={5} />
               </div>
-              <div className="form-group">
-                <label className="form-label">Arrival Rate /s</label>
-                <input type="number" className="form-input" value={phase.arrivalRate || ''}
-                  onChange={e => setPhase(i, 'arrivalRate', e.target.value)} min={1} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Ramp To /s (opt)</label>
-                <input type="number" className="form-input" value={phase.rampTo || ''}
-                  onChange={e => setPhase(i, 'rampTo', e.target.value)} min={0} placeholder="—" />
-              </div>
+              {form.arrivalMode === 'arrivalCount' ? (
+                <div className="form-group">
+                  <label className="form-label">Arrival Count (VUs)</label>
+                  <input type="number" className="form-input" value={phase.arrivalCount || ''}
+                    onChange={e => setPhase(i, 'arrivalCount', e.target.value)} min={1} placeholder="e.g. 50" />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">Arrival Rate /s</label>
+                  <input type="number" className="form-input" value={phase.arrivalRate || ''}
+                    onChange={e => setPhase(i, 'arrivalRate', e.target.value)} min={1} placeholder="e.g. 5" />
+                </div>
+              )}
+              {form.arrivalMode !== 'arrivalCount' && (
+                <div className="form-group">
+                  <label className="form-label">Ramp To /s (opt)</label>
+                  <input type="number" className="form-input" value={phase.rampTo || ''}
+                    onChange={e => setPhase(i, 'rampTo', e.target.value)} min={0} placeholder="—" />
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Phase Name</label>
                 <input className="form-input" value={phase.name || ''}

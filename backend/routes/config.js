@@ -141,7 +141,7 @@ router.get('/base-sessions', (req, res) => {
       rowCount: sessions.length,
       preparedAt: config.basePreparedAt || null,
       columns,
-      sessions: sessions.slice(0, 500)
+      sessions
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

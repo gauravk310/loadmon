@@ -249,12 +249,20 @@ export default function ChainTesting() {
   const [objectLimit, setObjectLimit] = useState(5)
   const [dataDuration, setDataDuration] = useState(5)
   const [dataArrivalRate, setDataArrivalRate] = useState(1)
+  const [dataArrivalCount, setDataArrivalCount] = useState(5)
+  const [dataArrivalMode, setDataArrivalMode] = useState('arrivalRate') // 'arrivalRate' | 'arrivalCount'
   const [dataDrivenRunning, setDataDrivenRunning] = useState(false)
   const [dataDrivenError, setDataDrivenError] = useState(null)
   const [reportCard, setReportCard] = useState(null)
   const [dataResults, setDataResults] = useState([])
   const [dataSearch, setDataSearch] = useState('')
   const [dataFilter, setDataFilter] = useState('ALL')
+
+  useEffect(() => {
+    if (config?.arrivalMode) {
+      setDataArrivalMode(config.arrivalMode)
+    }
+  }, [config?.arrivalMode])
 
   // ── Chain Executor State ──────────────────────────────────
   const [selectedChainId, setSelectedChainId] = useState('')
@@ -283,20 +291,41 @@ export default function ChainTesting() {
   const [baseUserSessionsData, setBaseUserSessionsData] = useState(null)
   const [baseStatusData, setBaseStatusData] = useState(null)
   const [baseLoadMessage, setBaseLoadMessage] = useState(null)
+  const [showFullJson, setShowFullJson] = useState(false)
+
+  const makeSamplePreview = (arr) => {
+    if (!Array.isArray(arr) || arr.length <= 5) return JSON.stringify(arr, null, 2);
+    const sample = arr.slice(0, 3);
+    const sampleJson = JSON.stringify(sample, null, 2);
+    return `// 🔐 Loaded ${arr.length} objects into memory for fast execution.\n// Showing sample preview (first 3 objects):\n` +
+      sampleJson.replace(/\n\]$/, `,\n  // ... ${arr.length - 3} more objects loaded in memory\n]`);
+  };
+
+  const toggleFullJsonDisplay = () => {
+    if (!extractedObjects || extractedObjects.length === 0) return;
+    if (!showFullJson) {
+      setShowFullJson(true);
+      setJsonInput(JSON.stringify(extractedObjects, null, 2));
+    } else {
+      setShowFullJson(false);
+      setJsonInput(makeSamplePreview(extractedObjects));
+    }
+  };
 
   const handleLoadBaseUserSessions = async () => {
     setExtractError(null)
     setBaseLoadMessage(null)
+    setShowFullJson(false)
     try {
       const res = await fetch(`${API}/config/base-sessions`)
       const data = await res.json()
       if (data.success && data.exists && Array.isArray(data.sessions) && data.sessions.length > 0) {
-        const jsonStr = JSON.stringify(data.sessions, null, 2)
-        setJsonInput(jsonStr)
+        const previewStr = makeSamplePreview(data.sessions)
+        setJsonInput(previewStr)
         setExtractedObjects(data.sessions)
         setExtractedCount(data.sessions.length)
         setBaseUserSessionsData(data.sessions)
-        setBaseLoadMessage(`🔐 Loaded ${data.sessions.length} Authenticated User Sessions`)
+        setBaseLoadMessage(`🔐 Loaded ${data.sessions.length} Authenticated User Sessions into Memory`)
         if (!objectLimit || objectLimit > data.sessions.length) {
           setObjectLimit(Math.min(5, data.sessions.length))
         }
@@ -311,14 +340,16 @@ export default function ChainTesting() {
   const handleLoadUserDataJson = async () => {
     setExtractError(null)
     setBaseLoadMessage(null)
+    setShowFullJson(false)
     try {
       const res = await fetch(`${API}/upload/raw`)
       const data = await res.json()
       if (data.success && Array.isArray(data.data)) {
-        const jsonStr = JSON.stringify(data.data, null, 2)
-        setJsonInput(jsonStr)
+        const previewStr = makeSamplePreview(data.data)
+        setJsonInput(previewStr)
         setExtractedObjects(data.data)
         setExtractedCount(data.data.length)
+        setBaseLoadMessage(`📂 Loaded ${data.data.length} Objects from userData.json into Memory`)
         if (!objectLimit || objectLimit > data.data.length) {
           setObjectLimit(Math.min(5, data.data.length))
         }
@@ -340,7 +371,13 @@ export default function ChainTesting() {
         setExtractError('Please enter or paste JSON body array')
         return
       }
-      const parsed = JSON.parse(raw)
+      if (raw.startsWith('// 🔐 Loaded') && extractedObjects.length > 0) {
+        setExtractedCount(extractedObjects.length)
+        setBaseLoadMessage(`🔐 Using ${extractedObjects.length} Objects Loaded in Memory`)
+        return
+      }
+      const cleanJsonStr = raw.replace(/^\/\/.*$/gm, '').trim()
+      const parsed = JSON.parse(cleanJsonStr)
       const arr = Array.isArray(parsed) ? parsed : [parsed]
       if (arr.length === 0) {
         setExtractError('Extracted JSON array is empty')
@@ -348,6 +385,7 @@ export default function ChainTesting() {
       }
       setExtractedObjects(arr)
       setExtractedCount(arr.length)
+      setShowFullJson(false)
       if (!objectLimit || objectLimit > arr.length) {
         setObjectLimit(Math.min(5, arr.length))
       }
@@ -405,7 +443,8 @@ export default function ChainTesting() {
           objects: objs,
           limit: Number(objectLimit) || objs.length,
           duration: Number(dataDuration),
-          arrivalRate: Number(dataArrivalRate)
+          arrivalRate: dataArrivalMode === 'arrivalRate' ? Number(dataArrivalRate) : undefined,
+          arrivalCount: dataArrivalMode === 'arrivalCount' ? Number(dataArrivalCount) : undefined
         })
       })
 
@@ -1005,17 +1044,29 @@ export default function ChainTesting() {
             )}
 
             <div className="form-group mb-3">
-              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>JSON Body Input (Array of Objects)</span>
-                {extractedCount > 0 && (
-                  <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
-                    ✅ {extractedCount.toLocaleString()} Objects Extracted
-                  </span>
-                )}
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  {extractedObjects && extractedObjects.length > 5 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', color: 'var(--accent-light)', borderColor: 'rgba(99, 102, 241, 0.3)' }}
+                      onClick={toggleFullJsonDisplay}
+                    >
+                      {showFullJson ? '⚡ Switch to Fast Preview' : `📜 View Full Raw JSON (${extractedObjects.length})`}
+                    </button>
+                  )}
+                  {extractedCount > 0 && (
+                    <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
+                      ✅ {extractedCount.toLocaleString()} Objects Extracted
+                    </span>
+                  )}
+                </div>
               </label>
               <textarea
                 className="form-textarea"
-                rows={5}
+                rows={6}
                 value={jsonInput}
                 onChange={e => setJsonInput(e.target.value)}
                 placeholder={'[\n  {\n    "email": "student0001@loadtesting.com",\n    "password": "GradeMeAI"\n  },\n  {\n    "email": "student0002@loadtesting.com",\n    "password": "GradeMeAI"\n  }\n]'}
@@ -1024,7 +1075,8 @@ export default function ChainTesting() {
             </div>
 
             {(() => {
-              const calcCount = (Number(dataDuration) || 0) * (Number(dataArrivalRate) || 0)
+              const isCount = dataArrivalMode === 'arrivalCount'
+              const calcCount = isCount ? (Number(dataArrivalCount) || 0) : (Number(dataDuration) || 0) * (Number(dataArrivalRate) || 0)
               const isExceeded = calcCount > (Number(objectLimit) || 0)
               return (
                 <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1038,12 +1090,12 @@ export default function ChainTesting() {
 
                     <div className="flex items-center gap-2">
                       <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Limit Objects to Run:
+                        Limit Objects:
                       </label>
                       <input
                         type="number"
                         className="form-input"
-                        style={{ width: 85, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                        style={{ width: 75, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
                         value={objectLimit}
                         onChange={e => setObjectLimit(Math.max(1, Number(e.target.value)))}
                         min={1}
@@ -1051,38 +1103,79 @@ export default function ChainTesting() {
                       />
                       {extractedCount > 0 && (
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                          out of {extractedCount.toLocaleString()}
+                          / {extractedCount.toLocaleString()}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Duration (s):
-                      </label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        style={{ width: 75, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
-                        value={dataDuration}
-                        onChange={e => setDataDuration(Math.max(1, Number(e.target.value)))}
-                        min={1}
-                      />
+                    {!isCount && (
+                      <div className="flex items-center gap-2">
+                        <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                          Duration (s):
+                        </label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ width: 70, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                          value={dataDuration}
+                          onChange={e => setDataDuration(Math.max(1, Number(e.target.value)))}
+                          min={1}
+                        />
+                      </div>
+                    )}
+
+                    {/* Mode Toggle Switch */}
+                    <div className="flex items-center gap-1" style={{ background: 'var(--bg-card)', padding: '2px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                      <button
+                        type="button"
+                        className={`btn btn-xs ${!isCount ? 'btn-primary' : 'btn-ghost'}`}
+                        onClick={() => setDataArrivalMode('arrivalRate')}
+                        title="Arrival Rate: Virtual users per second"
+                        style={{ fontSize: '0.72rem', padding: '2px 7px' }}
+                      >
+                        📈 arrivalRate
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-xs ${isCount ? 'btn-primary' : 'btn-ghost'}`}
+                        onClick={() => setDataArrivalMode('arrivalCount')}
+                        title="Arrival Count: Fixed total count of virtual users"
+                        style={{ fontSize: '0.72rem', padding: '2px 7px' }}
+                      >
+                        ⚡ arrivalCount
+                      </button>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Arrival /s:
-                      </label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        style={{ width: 75, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
-                        value={dataArrivalRate}
-                        onChange={e => setDataArrivalRate(Math.max(1, Number(e.target.value)))}
-                        min={1}
-                      />
-                    </div>
+                    {isCount ? (
+                      <div className="flex items-center gap-2">
+                        <label style={{ fontSize: '0.82rem', color: 'var(--accent-light)', fontWeight: 600 }}>
+                          Arrival Count:
+                        </label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ width: 75, padding: '0.35rem 0.6rem', fontSize: '0.82rem', fontWeight: 600 }}
+                          value={dataArrivalCount}
+                          onChange={e => setDataArrivalCount(Math.max(1, Number(e.target.value)))}
+                          min={1}
+                          placeholder="e.g. 5"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <label style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                          Arrival /s:
+                        </label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ width: 70, padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                          value={dataArrivalRate}
+                          onChange={e => setDataArrivalRate(Math.max(1, Number(e.target.value)))}
+                          min={1}
+                        />
+                      </div>
+                    )}
 
                     <div style={{
                       fontSize: '0.78rem',
@@ -1093,9 +1186,13 @@ export default function ChainTesting() {
                       color: isExceeded ? 'var(--danger)' : 'var(--success)',
                       fontWeight: 600
                     }}>
-                      {isExceeded
-                        ? `⚠️ ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} > Limit (${objectLimit})`
-                        : `Total: ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} / ${objectLimit} max`}
+                      {isCount
+                        ? (isExceeded
+                            ? `⚠️ arrivalCount = ${dataArrivalCount} VUs > Limit (${objectLimit})`
+                            : `Total (arrivalCount): ${dataArrivalCount} VUs / ${objectLimit} max`)
+                        : (isExceeded
+                            ? `⚠️ ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} > Limit (${objectLimit})`
+                            : `Total (arrivalRate): ${dataDuration}s × ${dataArrivalRate}/s = ${calcCount} / ${objectLimit} max`)}
                     </div>
                   </div>
 

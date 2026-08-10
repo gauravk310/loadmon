@@ -20,6 +20,7 @@
   "httpTimeout": 30,
   "maxSockets": 5000,
   "randomIp": true,
+  "arrivalMode": "arrivalRate",
   "steps": [],
   "phases": [
     {
@@ -31,7 +32,7 @@
   "headersText": "",
   "bodyText": "",
   "useBaseConfig": true,
-  "baseNumUsers": 500,
+  "baseNumUsers": 100,
   "baseSteps": [
     {
       "id": "step_1",
@@ -150,8 +151,8 @@
     "testId",
     "test_id"
   ],
-  "basePreparedCount": 500,
-  "basePreparedAt": "2026-08-08T05:31:15.832Z",
+  "basePreparedCount": 100,
+  "basePreparedAt": "2026-08-10T07:11:58.812Z",
   "baseStepSavedKeys": [
     {
       "stepIndex": 1,
@@ -261,13 +262,12 @@
       "status": 200,
       "success": true,
       "headers": {
-        "date": "Sat, 08 Aug 2026 05:30:11 GMT",
+        "date": "Mon, 10 Aug 2026 07:11:35 GMT",
         "content-type": "application/json; charset=utf-8",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
         "access-control-allow-credentials": "true",
         "access-control-allow-origin": "https://grademeai-qafe.onrender.com",
-        "cf-cache-status": "DYNAMIC",
         "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
         "cross-origin-opener-policy": "same-origin",
         "cross-origin-resource-policy": "same-origin",
@@ -275,13 +275,13 @@
         "origin-agent-cluster": "?1",
         "ratelimit-limit": "100",
         "ratelimit-policy": "100;w=900",
-        "ratelimit-remaining": "98",
+        "ratelimit-remaining": "99",
         "ratelimit-reset": "900",
         "referrer-policy": "no-referrer",
-        "rndr-id": "5cd752eb-d9e0-4e77",
+        "rndr-id": "01a9a2dc-cf6f-4492",
         "server": "cloudflare",
         "set-cookie": [
-          "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MTY3MDExLCJleHAiOjE3ODYxODg2MTF9.gEzKu4in9AzbqQx9j2aIS3qpmCRRXkfAfWhI7ZfEILU; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sat, 08 Aug 2026 11:30:11 GMT; HttpOnly; Secure; SameSite=None"
+          "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MzQ1ODk1LCJleHAiOjE3ODYzNjc0OTV9.zQzhFo7LN0y4kr8DCL9HPnYAFdDSfuIllg4fhGDgmr8; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Mon, 10 Aug 2026 13:11:35 GMT; HttpOnly; Secure; SameSite=None"
         ],
         "strict-transport-security": "max-age=31536000; includeSubDomains",
         "vary": "Origin, Accept-Encoding",
@@ -293,7 +293,8 @@
         "x-powered-by": "Express",
         "x-render-origin-server": "Render",
         "x-xss-protection": "0",
-        "cf-ray": "a27c20aa9aa3eccd-BOM",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a28d2ff43d9e4063-BOM",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "responseJson": {
@@ -308,7 +309,7 @@
       },
       "responseBody": null,
       "error": null,
-      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MTY3MDExLCJleHAiOjE3ODYxODg2MTF9.gEzKu4in9AzbqQx9j2aIS3qpmCRRXkfAfWhI7ZfEILU; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sat, 08 Aug 2026 11:30:11 GMT; HttpOnly; Secure; SameSite=None",
+      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MzQ1ODk1LCJleHAiOjE3ODYzNjc0OTV9.zQzhFo7LN0y4kr8DCL9HPnYAFdDSfuIllg4fhGDgmr8; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Mon, 10 Aug 2026 13:11:35 GMT; HttpOnly; Secure; SameSite=None",
       "capturedTokens": {
         "token": null,
         "access_token": null,
@@ -325,24 +326,23 @@
       "status": 200,
       "success": true,
       "headers": {
-        "date": "Sat, 08 Aug 2026 05:30:11 GMT",
+        "date": "Mon, 10 Aug 2026 07:11:35 GMT",
         "content-type": "application/json; charset=utf-8",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
         "access-control-allow-credentials": "true",
         "access-control-allow-origin": "https://grademeai-qafe.onrender.com",
-        "cf-cache-status": "DYNAMIC",
         "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
         "cross-origin-opener-policy": "same-origin",
         "cross-origin-resource-policy": "same-origin",
-        "etag": "W/\"1a3-ppv6xlrn5q/CxtjJD3tc7ruu0/I\"",
+        "etag": "W/\"189-PifYhwkdOf8oCdRCXej+UYonexo\"",
         "origin-agent-cluster": "?1",
         "ratelimit-limit": "3000",
         "ratelimit-policy": "3000;w=60",
-        "ratelimit-remaining": "2997",
+        "ratelimit-remaining": "2998",
         "ratelimit-reset": "60",
         "referrer-policy": "no-referrer",
-        "rndr-id": "3af5cac5-f1b1-4c72",
+        "rndr-id": "8c5394eb-d944-414e",
         "server": "cloudflare",
         "strict-transport-security": "max-age=31536000; includeSubDomains",
         "vary": "Origin, Accept-Encoding",
@@ -354,7 +354,8 @@
         "x-powered-by": "Express",
         "x-render-origin-server": "Render",
         "x-xss-protection": "0",
-        "cf-ray": "a27c20acbe38eccd-BOM",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a28d2ff78f794063-BOM",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "responseJson": [
@@ -371,9 +372,7 @@
             "level": "Grade 10",
             "isPracticeZone": false
           },
-          "pendingTestIds": [
-            "6a75f5e2b71993c0d2224508"
-          ],
+          "pendingTestIds": [],
           "currentStudents": 0,
           "course": {
             "name": null,
@@ -388,7 +387,7 @@
       ],
       "responseBody": null,
       "error": null,
-      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MTY3MDExLCJleHAiOjE3ODYxODg2MTF9.gEzKu4in9AzbqQx9j2aIS3qpmCRRXkfAfWhI7ZfEILU; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sat, 08 Aug 2026 11:30:11 GMT; HttpOnly; Secure; SameSite=None",
+      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MzQ1ODk1LCJleHAiOjE3ODYzNjc0OTV9.zQzhFo7LN0y4kr8DCL9HPnYAFdDSfuIllg4fhGDgmr8; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Mon, 10 Aug 2026 13:11:35 GMT; HttpOnly; Secure; SameSite=None",
       "capturedTokens": {
         "token": null,
         "access_token": null,
@@ -405,7 +404,7 @@
       "status": 200,
       "success": true,
       "headers": {
-        "date": "Sat, 08 Aug 2026 05:30:12 GMT",
+        "date": "Mon, 10 Aug 2026 07:11:36 GMT",
         "content-type": "application/json; charset=utf-8",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
@@ -418,10 +417,10 @@
         "origin-agent-cluster": "?1",
         "ratelimit-limit": "3000",
         "ratelimit-policy": "3000;w=60",
-        "ratelimit-remaining": "2994",
-        "ratelimit-reset": "19",
+        "ratelimit-remaining": "2997",
+        "ratelimit-reset": "60",
         "referrer-policy": "no-referrer",
-        "rndr-id": "a40ad10e-9d8b-4092",
+        "rndr-id": "e215d542-6626-49af",
         "server": "cloudflare",
         "strict-transport-security": "max-age=31536000; includeSubDomains",
         "vary": "Origin, Accept-Encoding",
@@ -433,7 +432,7 @@
         "x-render-origin-server": "Render",
         "x-xss-protection": "0",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a27c20adafbeeccd-BOM",
+        "cf-ray": "a28d2ffa39bf4063-BOM",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "responseJson": [
@@ -1263,7 +1262,7 @@
       ],
       "responseBody": null,
       "error": null,
-      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MTY3MDExLCJleHAiOjE3ODYxODg2MTF9.gEzKu4in9AzbqQx9j2aIS3qpmCRRXkfAfWhI7ZfEILU; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sat, 08 Aug 2026 11:30:11 GMT; HttpOnly; Secure; SameSite=None",
+      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2MzQ1ODk1LCJleHAiOjE3ODYzNjc0OTV9.zQzhFo7LN0y4kr8DCL9HPnYAFdDSfuIllg4fhGDgmr8; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Mon, 10 Aug 2026 13:11:35 GMT; HttpOnly; Secure; SameSite=None",
       "capturedTokens": {
         "token": null,
         "access_token": null,

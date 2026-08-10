@@ -1,49 +1,53 @@
 {
   "aggregate": {
     "counters": {
-      "http.requests": 6,
-      "http.responses": 6,
-      "vusers.created": 6,
-      "vusers.completed": 6,
-      "vusers.failed": 0,
-      "http.codes.200": 6
+      "http.requests": 500,
+      "http.responses": 500,
+      "vusers.created": 500,
+      "vusers.completed": 380,
+      "vusers.failed": 120,
+      "http.codes.200": 380,
+      "http.codes.500": 120,
+      "errors.HTTP_500": 120
     },
     "summaries": {
       "http.response_time": {
-        "min": 219,
-        "max": 493,
-        "mean": 338,
-        "median": 234,
-        "p75": 463,
-        "p90": 493,
-        "p95": 493,
-        "p99": 493
+        "min": 0,
+        "max": 30184,
+        "mean": 11551,
+        "median": 10982,
+        "p75": 20464,
+        "p90": 26146,
+        "p95": 28104,
+        "p99": 29610
       }
     },
-    "firstMetricAt": 1786167947816,
-    "lastMetricAt": 1786167950576
+    "firstMetricAt": 1786265311101,
+    "lastMetricAt": 1786265346296
   },
   "intermediate": [
     {
-      "period": "1786167947816",
+      "period": "1786265311101",
       "counters": {
-        "http.requests": 6,
-        "http.responses": 6,
-        "vusers.created": 6,
-        "vusers.completed": 6,
-        "vusers.failed": 0,
-        "http.codes.200": 6
+        "http.requests": 500,
+        "http.responses": 500,
+        "vusers.created": 500,
+        "vusers.completed": 380,
+        "vusers.failed": 120,
+        "http.codes.200": 380,
+        "http.codes.500": 120,
+        "errors.HTTP_500": 120
       },
       "summaries": {
         "http.response_time": {
-          "min": 219,
-          "max": 493,
-          "mean": 338,
-          "median": 234,
-          "p75": 463,
-          "p90": 493,
-          "p95": 493,
-          "p99": 493
+          "min": 0,
+          "max": 30184,
+          "mean": 11551,
+          "median": 10982,
+          "p75": 20464,
+          "p90": 26146,
+          "p95": 28104,
+          "p99": 29610
         }
       }
     }

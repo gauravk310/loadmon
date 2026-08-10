@@ -644,8 +644,8 @@ router.post('/run-step', async (req, res) => {
 // Run chain sequentially for each object in objects array
 router.post('/run-data-driven', async (req, res) => {
   try {
-    let { serverUrl, appUrl, steps, objects, limit, duration, arrivalRate } = req.body;
-
+    let { serverUrl, appUrl, steps, objects, limit, duration, arrivalRate, arrivalCount } = req.body;
+    
     const cfg = loadConfig();
     const selectedApp = cfg.applications?.find(a => a.id === cfg.selectedAppId) || cfg.applications?.[0] || null;
 
@@ -699,9 +699,12 @@ router.post('/run-data-driven', async (req, res) => {
     const maxLimit = Number(limit) > 0 ? Math.min(Number(limit), dataObjects.length) : dataObjects.length;
     const dur = Number(duration) > 0 ? Number(duration) : 0;
     const arrRate = Number(arrivalRate) > 0 ? Number(arrivalRate) : 0;
+    const arrCount = Number(arrivalCount) > 0 ? Number(arrivalCount) : 0;
 
     let targetCount = maxLimit;
-    if (dur > 0 && arrRate > 0) {
+    if (arrCount > 0) {
+      targetCount = Math.min(maxLimit, arrCount);
+    } else if (dur > 0 && arrRate > 0) {
       targetCount = Math.min(maxLimit, Math.round(dur * arrRate));
     }
     const targetObjects = dataObjects.slice(0, targetCount);

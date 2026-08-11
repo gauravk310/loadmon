@@ -1911,7 +1911,7 @@ export default function ChainTesting() {
                     value={burstCount}
                     onChange={e => setBurstCount(Number(e.target.value))}
                     min={1}
-                    max={1000}
+                    max={100000}
                     style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--accent-light)' }}
                   />
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>

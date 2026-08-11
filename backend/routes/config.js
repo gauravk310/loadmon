@@ -152,8 +152,8 @@ router.get('/base-sessions', (req, res) => {
 router.post('/run-base-chain', async (req, res) => {
   try {
     const { baseNumUsers = 10, baseArrivalRate = 10, baseSteps = [] } = req.body;
-    const numUsers = Math.max(1, Math.min(1000, Number(baseNumUsers) || 10));
-    const arrRate = Math.max(1, Math.min(1000, Number(baseArrivalRate) || 10));
+    const numUsers = Math.max(1, Math.min(100000, Number(baseNumUsers) || 10));
+    const arrRate = Math.max(1, Math.min(100000, Number(baseArrivalRate) || 10));
 
     if (!Array.isArray(baseSteps) || baseSteps.length === 0) {
       return res.status(400).json({ success: false, error: 'At least one step is required in Base API Configuration' });

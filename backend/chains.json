@@ -192,44 +192,12 @@
             "value": "",
             "files": [
               {
-                "id": "Screenshot_2025-11-08_213041_1786347601322_948524.png",
-                "filename": "Screenshot_2025-11-08_213041_1786347601322_948524.png",
-                "originalName": "Screenshot 2025-11-08 213041.png",
-                "mimeType": "image/png",
-                "size": 141475,
-                "relativePath": "uploads/api_files/Screenshot_2025-11-08_213041_1786347601322_948524.png"
-              },
-              {
-                "id": "Screenshot_2025-11-08_213041_1786348133088_198530.png",
-                "filename": "Screenshot_2025-11-08_213041_1786348133088_198530.png",
-                "originalName": "Screenshot 2025-11-08 213041.png",
-                "mimeType": "image/png",
-                "size": 141475,
-                "relativePath": "uploads/api_files/Screenshot_2025-11-08_213041_1786348133088_198530.png"
-              },
-              {
-                "id": "Screenshot_2025-11-14_211045_1786348133092_915453.png",
-                "filename": "Screenshot_2025-11-14_211045_1786348133092_915453.png",
-                "originalName": "Screenshot 2025-11-14 211045.png",
-                "mimeType": "image/png",
-                "size": 86786,
-                "relativePath": "uploads/api_files/Screenshot_2025-11-14_211045_1786348133092_915453.png"
-              },
-              {
-                "id": "Screenshot_2025-11-14_212106_1786348133093_159178.png",
-                "filename": "Screenshot_2025-11-14_212106_1786348133093_159178.png",
-                "originalName": "Screenshot 2025-11-14 212106.png",
-                "mimeType": "image/png",
-                "size": 92648,
-                "relativePath": "uploads/api_files/Screenshot_2025-11-14_212106_1786348133093_159178.png"
-              },
-              {
-                "id": "Screenshot_2025-11-22_145832_1786348133103_942586.png",
-                "filename": "Screenshot_2025-11-22_145832_1786348133103_942586.png",
-                "originalName": "Screenshot 2025-11-22 145832.png",
-                "mimeType": "image/png",
-                "size": 172009,
-                "relativePath": "uploads/api_files/Screenshot_2025-11-22_145832_1786348133103_942586.png"
+                "id": "pfp_1786461938316_184260.jpeg",
+                "filename": "pfp_1786461938316_184260.jpeg",
+                "originalName": "pfp.jpeg",
+                "mimeType": "image/jpeg",
+                "size": 21144,
+                "relativePath": "uploads/api_files/pfp_1786461938316_184260.jpeg"
               }
             ],
             "enabled": true
@@ -245,6 +213,6 @@
       }
     ],
     "createdAt": "2026-08-10T07:19:19.654Z",
-    "updatedAt": "2026-08-10T07:49:22.051Z"
+    "updatedAt": "2026-08-11T17:33:31.163Z"
   }
 ]

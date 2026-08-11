@@ -657,7 +657,7 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
                   type="number"
                   className="form-input"
                   min={1}
-                  max={1000}
+                  max={100000}
                   value={form.baseNumUsers || 10}
                   onChange={e => set('baseNumUsers', Math.max(1, Number(e.target.value) || 1))}
                   placeholder="e.g. 10"
@@ -674,7 +674,7 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
                   type="number"
                   className="form-input"
                   min={1}
-                  max={1000}
+                  max={100000}
                   value={form.baseArrivalRate || 10}
                   onChange={e => set('baseArrivalRate', Math.max(1, Number(e.target.value) || 1))}
                   placeholder="e.g. 10"

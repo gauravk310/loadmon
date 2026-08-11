@@ -1,53 +1,53 @@
 {
   "aggregate": {
     "counters": {
-      "http.requests": 100,
-      "http.responses": 100,
-      "vusers.created": 100,
-      "vusers.completed": 64,
-      "vusers.failed": 36,
-      "http.codes.200": 64,
-      "http.codes.500": 36,
-      "errors.HTTP_500": 36
+      "http.requests": 500,
+      "http.responses": 500,
+      "vusers.created": 500,
+      "vusers.completed": 13,
+      "vusers.failed": 487,
+      "http.codes.500": 487,
+      "errors.HTTP_500": 487,
+      "http.codes.200": 13
     },
     "summaries": {
       "http.response_time": {
         "min": 0,
-        "max": 179569,
-        "mean": 87879,
-        "median": 100928,
-        "p75": 163160,
-        "p90": 174614,
-        "p95": 177717,
-        "p99": 178742
+        "max": 35547,
+        "mean": 739,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "p95": 0,
+        "p99": 31831
       }
     },
-    "firstMetricAt": 1786349633966,
-    "lastMetricAt": 1786349816695
+    "firstMetricAt": 1786469941786,
+    "lastMetricAt": 1786469986113
   },
   "intermediate": [
     {
-      "period": "1786349633966",
+      "period": "1786469941786",
       "counters": {
-        "http.requests": 100,
-        "http.responses": 100,
-        "vusers.created": 100,
-        "vusers.completed": 64,
-        "vusers.failed": 36,
-        "http.codes.200": 64,
-        "http.codes.500": 36,
-        "errors.HTTP_500": 36
+        "http.requests": 500,
+        "http.responses": 500,
+        "vusers.created": 500,
+        "vusers.completed": 13,
+        "vusers.failed": 487,
+        "http.codes.500": 487,
+        "errors.HTTP_500": 487,
+        "http.codes.200": 13
       },
       "summaries": {
         "http.response_time": {
           "min": 0,
-          "max": 179569,
-          "mean": 87879,
-          "median": 100928,
-          "p75": 163160,
-          "p90": 174614,
-          "p95": 177717,
-          "p99": 178742
+          "max": 35547,
+          "mean": 739,
+          "median": 0,
+          "p75": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 31831
         }
       }
     }

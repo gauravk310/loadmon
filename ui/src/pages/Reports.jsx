@@ -228,9 +228,6 @@ export default function Reports() {
         <MetricCard label="Avg Response"  value={fmt(rt.mean)}  unit="ms" color="cyan" />
       </div>
 
-      {/* 🎓 Student Execution Flow & Step Performance Table */}
-      <StudentExecutionReport students={students} rawLogs={rawLogs} />
-
       {/* Response Time Breakdown */}
       <div className="card card-p mb-3">
         <div className="section-title mb-2">Response Time Distribution</div>
@@ -365,6 +362,9 @@ export default function Reports() {
           <div className="empty-state"><div className="empty-icon">📭</div><div className="empty-desc">No HTTP responses</div></div>
         )}
       </div>
+
+      {/* 🎓 Student Execution Flow & Step Performance Table */}
+      <StudentExecutionReport students={students} rawLogs={rawLogs} />
 
       {/* Errors */}
       {Object.keys(errorCounters).length > 0 && (
@@ -582,9 +582,9 @@ function StudentExecutionReport({ students = [], rawLogs = [] }) {
       {/* Content View */}
       {viewMode === 'grouped' ? (
         filteredStudents.length > 0 ? (
-          <div className="table-wrap" style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
+          <div className="table-wrap" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 10 }}>
                 <tr>
                   <th style={{ width: 40 }}></th>
                   <th>Student Email / Name</th>
@@ -694,9 +694,9 @@ function StudentExecutionReport({ students = [], rawLogs = [] }) {
       ) : (
         /* Flat Step Logs View */
         filteredRawLogs.length > 0 ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
+          <div className="table-wrap" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 10 }}>
                 <tr>
                   <th>Time</th>
                   <th>Student Email / VU</th>

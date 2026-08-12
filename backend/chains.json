@@ -134,17 +134,28 @@
         "id": "step_1786199428643_0",
         "name": "Step 1",
         "method": "POST",
-        "endpoint": "/api/",
+        "endpoint": "/api/score/submit-online-exam",
         "headers": {
           "Content-Type": "application/json"
         },
-        "body": "",
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_0_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "{\n    \"testId\": \"{{testId}}\",\n    \"studentId\": \"{{user.id}}\",\n    \"answers\": {\n        \"1\": \"A\",\n        \"2\": \"B\",\n        \"3\": \"C\"\n    },\n    \"timeTaken\": {\n        \"1\": 20,\n        \"2\": 10,\n        \"3\": 30\n    },\n    \"isAutoSubmit\": false,\n    \"autoSubmitReason\": \"\",\n    \"violationLog\": [\n        {\n            \"type\": \"window_lost_focus\",\n            \"timestamp\": 1786347113194\n        }\n    ]\n}",
         "think": 1,
         "responseKeys": []
       }
     ],
     "createdAt": "2026-08-08T14:31:27.376Z",
-    "updatedAt": "2026-08-08T14:31:27.376Z"
+    "updatedAt": "2026-08-12T16:56:47.890Z"
   },
   {
     "id": "chain_1786346359654",

@@ -1,0 +1,22 @@
+{
+    "testId": "6a75f5e2b71993c0d2224508",
+    "studentId": "6a7226d7b003b9c339ea7ad2",
+    "answers": {
+        "1": "A",
+        "2": "B",
+        "3": "C"
+    },
+    "timeTaken": {
+        "1": 20,
+        "2": 10,
+        "3": 30
+    },
+    "isAutoSubmit": false,
+    "autoSubmitReason": "",
+    "violationLog": [
+        {
+            "type": "window_lost_focus",
+            "timestamp": 1786347113194
+        }
+    ]
+}

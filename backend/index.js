@@ -15,8 +15,8 @@ app.use(cors({
     : true,
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 // ── Ensure required directories exist ────────────────────
 const dirs = [

@@ -1481,21 +1481,80 @@ export default function ChainTesting() {
 
 
                       {/* Variable preview from previous steps & authenticated users */}
-                      {varSuggestions.length > 0 && (
-                        <div className="chain-vars-preview">
-                          <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--cyan)', marginBottom: '0.5rem' }}>
-                            🔁 Saved Variables Available ({varSuggestions.filter(s => s.stepNum === 0).length > 0 ? '🔐 Authenticated Sessions & ' : ''}Previous Steps)
+                      {varSuggestions.length > 0 && (() => {
+                        const groupsMap = new Map()
+                        varSuggestions.forEach(s => {
+                          const sNum = s.stepNum ?? 0
+                          const sName = s.stepLabel || s.stepName || (sNum === 0 ? 'Authenticated Sessions' : `Step ${sNum}`)
+                          if (!groupsMap.has(sNum)) {
+                            groupsMap.set(sNum, { stepNum: sNum, stepName: sName, items: [] })
+                          }
+                          groupsMap.get(sNum).items.push(s)
+                        })
+                        const groups = Array.from(groupsMap.values()).sort((a, b) => a.stepNum - b.stepNum)
+
+                        return (
+                          <div className="chain-vars-preview" style={{ padding: '0.65rem 0.75rem' }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--cyan)', marginBottom: '0.5rem' }}>
+                              🔁 Saved Variables Available ({varSuggestions.filter(s => s.stepNum === 0).length > 0 ? '🔐 Authenticated Sessions & ' : ''}Previous Steps):
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.65rem' }}>
+                              {groups.map((grp, gIdx) => (
+                                <div key={gIdx} style={{
+                                  background: 'rgba(0, 0, 0, 0.25)',
+                                  border: '1px solid rgba(34, 211, 238, 0.15)',
+                                  borderRadius: '6px',
+                                  padding: '0.5rem 0.65rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  height: '140px',
+                                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
+                                }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    marginBottom: '0.35rem',
+                                    paddingBottom: '0.3rem',
+                                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                                    gap: '0.4rem'
+                                  }}>
+                                    <span
+                                      className="text-xs font-semibold"
+                                      style={{ color: grp.stepNum === 0 ? 'var(--success)' : 'var(--cyan)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.75rem' }}
+                                      title={grp.stepName}
+                                    >
+                                      {grp.stepNum === 0 ? '🔑 Authenticated Sessions' : `S${grp.stepNum}: ${grp.stepName}`}
+                                    </span>
+                                    <span
+                                      className="badge"
+                                      style={{
+                                        fontSize: '0.62rem',
+                                        background: grp.stepNum === 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(34, 211, 238, 0.12)',
+                                        color: grp.stepNum === 0 ? 'var(--success)' : 'var(--cyan)',
+                                        borderRadius: '99px',
+                                        padding: '1px 5px',
+                                        fontWeight: 600,
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      {grp.items.length} var{grp.items.length !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                  <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '0.3rem', alignContent: 'flex-start', paddingRight: '2px' }}>
+                                    {grp.items.map((s, i) => (
+                                      <span key={i} className="var-chip" style={{ fontSize: '0.7rem', padding: '1px 6px' }} title={`From ${s.stepLabel || s.stepName}`}>
+                                        {`{{${s.key}}}`}
+                                        <span className="var-chip-source" style={{ fontSize: '0.6rem' }}>{s.stepNum === 0 ? '🔐 Base' : `S${s.stepNum}`}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                            {varSuggestions.map((s, i) => (
-                              <span key={i} className="var-chip" title={`From ${s.stepLabel || s.stepName}`}>
-                                {`{{${s.key}}}`}
-                                <span className="var-chip-source">{s.stepNum === 0 ? '🔐 Base' : `S${s.stepNum}`}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        )
+                      })()}
 
                       {/* Run Step Button (Runs steps 1..idx linked sequentially) */}
                       <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>

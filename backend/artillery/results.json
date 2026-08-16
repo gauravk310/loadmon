@@ -1,53 +1,49 @@
 {
   "aggregate": {
     "counters": {
-      "http.requests": 1500,
-      "http.responses": 1500,
-      "vusers.created": 1500,
-      "vusers.completed": 17,
-      "vusers.failed": 1483,
-      "http.codes.500": 1483,
-      "errors.HTTP_500": 1483,
-      "http.codes.200": 17
+      "http.requests": 2000,
+      "http.responses": 2000,
+      "vusers.created": 2000,
+      "vusers.completed": 2000,
+      "vusers.failed": 0,
+      "http.codes.200": 2000
     },
     "summaries": {
       "http.response_time": {
-        "min": 0,
-        "max": 46800,
-        "mean": 446,
-        "median": 0,
-        "p75": 0,
-        "p90": 0,
-        "p95": 0,
-        "p99": 29401
+        "min": 5563,
+        "max": 9218,
+        "mean": 7459,
+        "median": 7508,
+        "p75": 8259,
+        "p90": 8669,
+        "p95": 8802,
+        "p99": 8968
       }
     },
-    "firstMetricAt": 1786553226443,
-    "lastMetricAt": 1786553279847
+    "firstMetricAt": 1786856833585,
+    "lastMetricAt": 1786856843864
   },
   "intermediate": [
     {
-      "period": "1786553226443",
+      "period": "1786856833585",
       "counters": {
-        "http.requests": 1500,
-        "http.responses": 1500,
-        "vusers.created": 1500,
-        "vusers.completed": 17,
-        "vusers.failed": 1483,
-        "http.codes.500": 1483,
-        "errors.HTTP_500": 1483,
-        "http.codes.200": 17
+        "http.requests": 2000,
+        "http.responses": 2000,
+        "vusers.created": 2000,
+        "vusers.completed": 2000,
+        "vusers.failed": 0,
+        "http.codes.200": 2000
       },
       "summaries": {
         "http.response_time": {
-          "min": 0,
-          "max": 46800,
-          "mean": 446,
-          "median": 0,
-          "p75": 0,
-          "p90": 0,
-          "p95": 0,
-          "p99": 29401
+          "min": 5563,
+          "max": 9218,
+          "mean": 7459,
+          "median": 7508,
+          "p75": 8259,
+          "p90": 8669,
+          "p95": 8802,
+          "p99": 8968
         }
       }
     }

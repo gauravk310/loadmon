@@ -170,6 +170,14 @@
     "onlineExamQuestions.bloomsLevel",
     "bloomsLevel",
     "advancedOnlineExamOptions",
+    "advancedOnlineExamOptions.videoProctoring",
+    "videoProctoring",
+    "advancedOnlineExamOptions.navigationBackToQuestion",
+    "navigationBackToQuestion",
+    "advancedOnlineExamOptions.shuffleQuestions",
+    "shuffleQuestions",
+    "advancedOnlineExamOptions.shuffleOptions",
+    "shuffleOptions",
     "isCalculatorAllowed",
     "questionNumbers",
     "isExternal",
@@ -181,11 +189,15 @@
     "createdAt",
     "updatedAt",
     "__v",
+    "dueDate",
+    "duration",
+    "scheduledDate",
+    "updatedBy",
     "testId",
     "test_id"
   ],
   "basePreparedCount": 2000,
-  "basePreparedAt": "2026-08-12T12:54:37.398Z",
+  "basePreparedAt": "2026-08-16T04:42:52.446Z",
   "baseStepSavedKeys": [
     {
       "stepIndex": 1,
@@ -268,6 +280,14 @@
         "onlineExamQuestions.bloomsLevel",
         "bloomsLevel",
         "advancedOnlineExamOptions",
+        "advancedOnlineExamOptions.videoProctoring",
+        "videoProctoring",
+        "advancedOnlineExamOptions.navigationBackToQuestion",
+        "navigationBackToQuestion",
+        "advancedOnlineExamOptions.shuffleQuestions",
+        "shuffleQuestions",
+        "advancedOnlineExamOptions.shuffleOptions",
+        "shuffleOptions",
         "isCalculatorAllowed",
         "questionNumbers",
         "isExternal",
@@ -279,6 +299,10 @@
         "createdAt",
         "updatedAt",
         "__v",
+        "dueDate",
+        "duration",
+        "scheduledDate",
+        "updatedBy",
         "testId",
         "test_id"
       ]
@@ -295,7 +319,7 @@
       "status": 200,
       "success": true,
       "headers": {
-        "date": "Wed, 12 Aug 2026 12:50:48 GMT",
+        "date": "Sun, 16 Aug 2026 04:35:35 GMT",
         "content-type": "application/json; charset=utf-8",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
@@ -311,10 +335,10 @@
         "ratelimit-remaining": "99",
         "ratelimit-reset": "900",
         "referrer-policy": "no-referrer",
-        "rndr-id": "fbdcc2b3-35ed-435b",
+        "rndr-id": "b3254464-bff0-42e3",
         "server": "cloudflare",
         "set-cookie": [
-          "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2NTM5MDQ4LCJleHAiOjE3ODY1NjA2NDh9.OWg-rK3j9PEkT5NvEOGTXJFKxLq283wBkdkhqNwySuY; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Wed, 12 Aug 2026 18:50:48 GMT; HttpOnly; Secure; SameSite=None"
+          "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2ODU0OTM1LCJleHAiOjE3ODY4NzY1MzV9.MiAiXHyl1OcN-YOJnElW6vJyybudwNH7lN9rc42wch4; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sun, 16 Aug 2026 10:35:35 GMT; HttpOnly; Secure; SameSite=None"
         ],
         "strict-transport-security": "max-age=31536000; includeSubDomains",
         "vary": "Origin, Accept-Encoding",
@@ -327,7 +351,7 @@
         "x-render-origin-server": "Render",
         "x-xss-protection": "0",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a29f9b9bf950493a-BOM",
+        "cf-ray": "a2bdbbb15d08dab3-BOM",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "responseJson": {
@@ -342,7 +366,7 @@
       },
       "responseBody": null,
       "error": null,
-      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2NTM5MDQ4LCJleHAiOjE3ODY1NjA2NDh9.OWg-rK3j9PEkT5NvEOGTXJFKxLq283wBkdkhqNwySuY; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Wed, 12 Aug 2026 18:50:48 GMT; HttpOnly; Secure; SameSite=None",
+      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2ODU0OTM1LCJleHAiOjE3ODY4NzY1MzV9.MiAiXHyl1OcN-YOJnElW6vJyybudwNH7lN9rc42wch4; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sun, 16 Aug 2026 10:35:35 GMT; HttpOnly; Secure; SameSite=None",
       "capturedTokens": {
         "token": null,
         "access_token": null,
@@ -359,7 +383,7 @@
       "status": 200,
       "success": true,
       "headers": {
-        "date": "Wed, 12 Aug 2026 12:50:49 GMT",
+        "date": "Sun, 16 Aug 2026 04:35:35 GMT",
         "content-type": "application/json; charset=utf-8",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
@@ -368,14 +392,14 @@
         "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
         "cross-origin-opener-policy": "same-origin",
         "cross-origin-resource-policy": "same-origin",
-        "etag": "W/\"189-PifYhwkdOf8oCdRCXej+UYonexo\"",
+        "etag": "W/\"1a3-kfovqKAztCLFrKOp2Tm3irIDs4A\"",
         "origin-agent-cluster": "?1",
         "ratelimit-limit": "3000",
         "ratelimit-policy": "3000;w=60",
         "ratelimit-remaining": "2998",
         "ratelimit-reset": "60",
         "referrer-policy": "no-referrer",
-        "rndr-id": "41a44a85-7f1b-423b",
+        "rndr-id": "3be5f78c-cf99-46fb",
         "server": "cloudflare",
         "strict-transport-security": "max-age=31536000; includeSubDomains",
         "vary": "Origin, Accept-Encoding",
@@ -388,7 +412,7 @@
         "x-render-origin-server": "Render",
         "x-xss-protection": "0",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a29f9b9edc25493a-BOM",
+        "cf-ray": "a2bdbbb39971dab3-BOM",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "responseJson": [
@@ -405,7 +429,9 @@
             "level": "Grade 10",
             "isPracticeZone": false
           },
-          "pendingTestIds": [],
+          "pendingTestIds": [
+            "6a809b3b9a43b6d822d9e1ec"
+          ],
           "currentStudents": 0,
           "course": {
             "name": null,
@@ -420,7 +446,7 @@
       ],
       "responseBody": null,
       "error": null,
-      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2NTM5MDQ4LCJleHAiOjE3ODY1NjA2NDh9.OWg-rK3j9PEkT5NvEOGTXJFKxLq283wBkdkhqNwySuY; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Wed, 12 Aug 2026 18:50:48 GMT; HttpOnly; Secure; SameSite=None",
+      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2ODU0OTM1LCJleHAiOjE3ODY4NzY1MzV9.MiAiXHyl1OcN-YOJnElW6vJyybudwNH7lN9rc42wch4; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sun, 16 Aug 2026 10:35:35 GMT; HttpOnly; Secure; SameSite=None",
       "capturedTokens": {
         "token": null,
         "access_token": null,
@@ -437,7 +463,7 @@
       "status": 200,
       "success": true,
       "headers": {
-        "date": "Wed, 12 Aug 2026 12:50:49 GMT",
+        "date": "Sun, 16 Aug 2026 04:35:35 GMT",
         "content-type": "application/json; charset=utf-8",
         "transfer-encoding": "chunked",
         "connection": "keep-alive",
@@ -446,14 +472,14 @@
         "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
         "cross-origin-opener-policy": "same-origin",
         "cross-origin-resource-policy": "same-origin",
-        "etag": "W/\"dcb-wO+qeXjpqNxGjomM0znPvE7WrGE\"",
+        "etag": "W/\"2c24-jjSyVPgTTGqpapYx6EFybQWNZik\"",
         "origin-agent-cluster": "?1",
         "ratelimit-limit": "3000",
         "ratelimit-policy": "3000;w=60",
-        "ratelimit-remaining": "2996",
+        "ratelimit-remaining": "2997",
         "ratelimit-reset": "60",
         "referrer-policy": "no-referrer",
-        "rndr-id": "50f4733d-4148-4b48",
+        "rndr-id": "824a7440-23cb-491c",
         "server": "cloudflare",
         "strict-transport-security": "max-age=31536000; includeSubDomains",
         "vary": "Origin, Accept-Encoding",
@@ -465,165 +491,508 @@
         "x-render-origin-server": "Render",
         "x-xss-protection": "0",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a29f9ba0fe17493a-BOM",
+        "cf-ray": "a2bdbbb54cc8dab3-BOM",
         "alt-svc": "h3=\":443\"; ma=86400"
       },
       "responseJson": [
         {
-          "_id": "6a7b3cae800dbc3cd8aab45d",
+          "_id": "6a809b3b9a43b6d822d9e1ec",
           "classId": "6a74356950af413da71ff222",
-          "testName": "LOAD TESTING TEST 100 Q",
-          "maxScore": 18,
+          "testName": "UI LOAD TEST EXAM",
+          "maxScore": 60,
           "userPrompt": "",
           "isManualEntryQuestions": false,
           "isOnlineExamination": true,
           "onlineExamQuestions": [
             {
-              "questionId": "6a7b3cae800dbc3cd8aab427",
+              "questionId": "6a809b3a9a43b6d822d9e138",
               "questionNumber": "1",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Understand AC definitions",
-              "bloomsLevel": "Remember"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab42a",
+              "questionId": "6a809b3a9a43b6d822d9e13b",
               "questionNumber": "2",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Calculate capacitive current",
-              "bloomsLevel": "Apply"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab42d",
+              "questionId": "6a809b3a9a43b6d822d9e13e",
               "questionNumber": "3",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Understand AC definitions",
-              "bloomsLevel": "Remember"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab430",
+              "questionId": "6a809b3a9a43b6d822d9e141",
               "questionNumber": "4",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Calculate induced current",
-              "bloomsLevel": "Analyze"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab433",
+              "questionId": "6a809b3a9a43b6d822d9e144",
               "questionNumber": "5",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Understand inductive circuits",
-              "bloomsLevel": "Apply"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab436",
+              "questionId": "6a809b3a9a43b6d822d9e147",
               "questionNumber": "6",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Calculate phase angle",
-              "bloomsLevel": "Apply"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab439",
+              "questionId": "6a809b3a9a43b6d822d9e14a",
               "questionNumber": "7",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Understand inductive reactance",
-              "bloomsLevel": "Apply"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab43c",
+              "questionId": "6a809b3a9a43b6d822d9e14d",
               "questionNumber": "8",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Understand inductive circuits",
-              "bloomsLevel": "Analyze"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab43f",
+              "questionId": "6a809b3a9a43b6d822d9e150",
               "questionNumber": "9",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Analyze inductive voltage",
-              "bloomsLevel": "Analyze"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab442",
+              "questionId": "6a809b3a9a43b6d822d9e153",
               "questionNumber": "10",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Calculate phase difference",
-              "bloomsLevel": "Apply"
+              "courseOutcome": "",
+              "bloomsLevel": ""
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab445",
+              "questionId": "6a809b3a9a43b6d822d9e156",
               "questionNumber": "11",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Calculate current in RL circuit",
-              "bloomsLevel": "Apply"
-            },
-            {
-              "questionId": "6a7b3cae800dbc3cd8aab448",
-              "questionNumber": "12",
-              "sectionNumber": null,
-              "maxScore": 1,
-              "courseOutcome": "Calculate peak capacitive current",
-              "bloomsLevel": "Apply"
-            },
-            {
-              "questionId": "6a7b3cae800dbc3cd8aab44b",
-              "questionNumber": "13",
-              "sectionNumber": null,
-              "maxScore": 1,
-              "courseOutcome": "Understand capacitive phase",
-              "bloomsLevel": "Understand"
-            },
-            {
-              "questionId": "6a7b3cae800dbc3cd8aab44e",
-              "questionNumber": "14",
-              "sectionNumber": null,
-              "maxScore": 1,
-              "courseOutcome": "Understand capacitive power",
-              "bloomsLevel": "Understand"
-            },
-            {
-              "questionId": "6a7b3cae800dbc3cd8aab451",
-              "questionNumber": "15",
-              "sectionNumber": null,
-              "maxScore": 1,
-              "courseOutcome": "Calculate capacitive current",
-              "bloomsLevel": "Apply"
-            },
-            {
-              "questionId": "6a7b3cae800dbc3cd8aab454",
-              "questionNumber": "16",
-              "sectionNumber": null,
-              "maxScore": 1,
-              "courseOutcome": "Analyze RC circuit",
+              "courseOutcome": "Understand polarity and physical properties of haloalkanes.",
               "bloomsLevel": "Analyze"
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab457",
-              "questionNumber": "17",
+              "questionId": "6a809b3a9a43b6d822d9e159",
+              "questionNumber": "12",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Calculate RMS value",
+              "courseOutcome": "Predict products of electrophilic addition to alkenes.",
               "bloomsLevel": "Apply"
             },
             {
-              "questionId": "6a7b3cae800dbc3cd8aab45a",
+              "questionId": "6a809b3a9a43b6d822d9e15c",
+              "questionNumber": "13",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Distinguish between substitution and elimination reactions.",
+              "bloomsLevel": "Understand"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e15f",
+              "questionNumber": "14",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Apply radical and ionic reaction mechanisms.",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e162",
+              "questionNumber": "15",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify organic compounds through reaction sequences.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e165",
+              "questionNumber": "16",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Evaluate carbocation stability.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e168",
+              "questionNumber": "17",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict elimination products.",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e16b",
               "questionNumber": "18",
               "sectionNumber": null,
               "maxScore": 1,
-              "courseOutcome": "Understand capacitive reactance",
+              "courseOutcome": "Predict products of electrophilic addition and nucleophilic substitution.",
               "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e16e",
+              "questionNumber": "19",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand ambident nucleophile reactivity.",
+              "bloomsLevel": "Understand"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e171",
+              "questionNumber": "20",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand neighboring group participation (NGP)",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e174",
+              "questionNumber": "21",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict products of nucleophilic substitution",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e177",
+              "questionNumber": "22",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand solvent effects on reaction mechanisms",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e17a",
+              "questionNumber": "23",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict relative rates of $S_N1$ reactions",
+              "bloomsLevel": "Evaluate"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e17d",
+              "questionNumber": "24",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify name reactions",
+              "bloomsLevel": "Remember"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e180",
+              "questionNumber": "25",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand Grignard reagent formation and hydrolysis",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e183",
+              "questionNumber": "26",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand reactivity in $S_N2$ reactions",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e186",
+              "questionNumber": "27",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict products of nucleophilic substitution",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e189",
+              "questionNumber": "28",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand reactivity in $S_N2$ reactions",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e18c",
+              "questionNumber": "29",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand stereoisomerism in haloalkanes",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e18f",
+              "questionNumber": "30",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Differentiate between SN1 and SN2 mechanisms",
+              "bloomsLevel": "Understand"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e192",
+              "questionNumber": "31",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify optically active molecules",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e195",
+              "questionNumber": "32",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict products of elimination reactions",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e198",
+              "questionNumber": "33",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict products of elimination reactions",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e19b",
+              "questionNumber": "34",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand synthetic pathways for haloalkanes",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e19e",
+              "questionNumber": "35",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict products of nucleophilic substitution",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1a1",
+              "questionNumber": "36",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand hydration of alkenes",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1a4",
+              "questionNumber": "37",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict products of elimination reactions",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1a7",
+              "questionNumber": "38",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand ambident nucleophiles",
+              "bloomsLevel": "Understand"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1aa",
+              "questionNumber": "39",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand reaction sequences of alkyl halides",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1ad",
+              "questionNumber": "40",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Classify haloalkanes",
+              "bloomsLevel": "Remember"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1b0",
+              "questionNumber": "41",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand classification of haloalkanes",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1b3",
+              "questionNumber": "42",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand factors affecting $S_N1$ and $S_N2$ mechanisms",
+              "bloomsLevel": "Evaluate"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1b6",
+              "questionNumber": "43",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand nucleophilic substitution with ambident nucleophiles",
+              "bloomsLevel": "Remember"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1b9",
+              "questionNumber": "44",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand stereochemical outcomes of $S_N1$ and $S_N2$",
+              "bloomsLevel": "Understand"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1bc",
+              "questionNumber": "45",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand anti-Markovnikov addition and stereochemistry.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1bf",
+              "questionNumber": "46",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify substrates that do not undergo $S_N1$ reactions.",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1c2",
+              "questionNumber": "47",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify chiral centers in organic molecules.",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1c5",
+              "questionNumber": "48",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Distinguish between $S_N1$ and $S_N2$ mechanisms.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1c8",
+              "questionNumber": "49",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Match reagents with products of alkyl halide reactions.",
+              "bloomsLevel": "Remember"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1cb",
+              "questionNumber": "50",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Analyze kinetics of nucleophilic aromatic substitution.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1ce",
+              "questionNumber": "51",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Evaluate assertions about chirality and optical activity.",
+              "bloomsLevel": "Evaluate"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1d1",
+              "questionNumber": "52",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Compare reactivity of halides in $S_N1$ reactions.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1d4",
+              "questionNumber": "53",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand Finkelstein reaction mechanism.",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1d7",
+              "questionNumber": "54",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify chiral compounds.",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1da",
+              "questionNumber": "55",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand reaction mechanisms",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1dd",
+              "questionNumber": "56",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Identify chiral centers",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1e0",
+              "questionNumber": "57",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand physical properties",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1e3",
+              "questionNumber": "58",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand reaction mechanisms",
+              "bloomsLevel": "Analyze"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1e6",
+              "questionNumber": "59",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Predict reaction products",
+              "bloomsLevel": "Apply"
+            },
+            {
+              "questionId": "6a809b3a9a43b6d822d9e1e9",
+              "questionNumber": "60",
+              "sectionNumber": null,
+              "maxScore": 1,
+              "courseOutcome": "Understand optical activity",
+              "bloomsLevel": "Analyze"
             }
           ],
-          "advancedOnlineExamOptions": [],
+          "advancedOnlineExamOptions": [
+            {
+              "videoProctoring": true,
+              "navigationBackToQuestion": true,
+              "shuffleQuestions": false,
+              "shuffleOptions": false
+            }
+          ],
           "isCalculatorAllowed": false,
           "questionNumbers": [],
           "isExternal": false,
@@ -632,14 +1001,18 @@
           "status": "Ready",
           "questionsAttainment": [],
           "manualEntryQuestions": [],
-          "createdAt": "2026-08-11T15:15:58.757Z",
-          "updatedAt": "2026-08-11T15:15:58.757Z",
-          "__v": 0
+          "createdAt": "2026-08-15T17:00:43.083Z",
+          "updatedAt": "2026-08-15T17:05:10.621Z",
+          "__v": 0,
+          "dueDate": "2026-08-20T17:30:00.000Z",
+          "duration": "60",
+          "scheduledDate": "2026-08-15T17:00:00.000Z",
+          "updatedBy": "6a468c40ee3e74950fd07881"
         }
       ],
       "responseBody": null,
       "error": null,
-      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2NTM5MDQ4LCJleHAiOjE3ODY1NjA2NDh9.OWg-rK3j9PEkT5NvEOGTXJFKxLq283wBkdkhqNwySuY; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Wed, 12 Aug 2026 18:50:48 GMT; HttpOnly; Secure; SameSite=None",
+      "capturedCookies": "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNzIyNmQ3YjAwM2I5YzMzOWVhN2FkMiIsInVzZXJOYW1lIjoiU3R1ZGVudCAwMDAxIiwiaWF0IjoxNzg2ODU0OTM1LCJleHAiOjE3ODY4NzY1MzV9.MiAiXHyl1OcN-YOJnElW6vJyybudwNH7lN9rc42wch4; Max-Age=21600; Domain=grademeai-qabe.onrender.com; Path=/; Expires=Sun, 16 Aug 2026 10:35:35 GMT; HttpOnly; Secure; SameSite=None",
       "capturedTokens": {
         "token": null,
         "access_token": null,
@@ -647,5 +1020,5 @@
       }
     }
   ],
-  "baseArrivalRate": 10
+  "baseArrivalRate": 5
 }

@@ -22,7 +22,7 @@ const upload = multer({
     if (['.xlsx', '.xls', '.json'].includes(ext)) return cb(null, true);
     cb(new Error('Only .xlsx, .xls, or .json files are allowed'));
   },
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+  limits: { fileSize: 500 * 1024 * 1024 } // 500MB
 });
 
 const userDataPath = path.join(uploadsDir, 'userData.json');
@@ -151,7 +151,7 @@ const apiFileStorage = multer.diskStorage({
 
 const uploadApiFiles = multer({
   storage: apiFileStorage,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB per file
+  limits: { fileSize: 500 * 1024 * 1024 } // 500MB per file
 });
 
 // ── POST /api/upload/api-files ───────────────────────────

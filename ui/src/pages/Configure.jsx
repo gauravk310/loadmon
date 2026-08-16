@@ -761,23 +761,59 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
                   {Array.isArray(stepSavedGroups) && stepSavedGroups.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Available Variables (Grouped by Step):</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        {stepSavedGroups.map((grp, gIdx) => (
-                          <div key={gIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '4px' }}>
-                            <span className="text-xs font-semibold" style={{ color: 'var(--cyan)', minWidth: '160px' }}>
-                              Step {grp?.stepIndex || (gIdx + 1)} ({String(grp?.stepName || `Step ${gIdx + 1}`)}):
-                            </span>
-                            {Array.isArray(grp?.keys) && grp.keys.length > 0 ? (
-                              grp.keys.map((k, i) => (
-                                <span key={i} className="badge badge-accent mono" style={{ fontSize: '0.72rem' }}>
-                                  {`{{${k}}}`}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                        {stepSavedGroups.map((grp, gIdx) => {
+                          const keys = Array.isArray(grp?.keys) ? grp.keys : []
+                          const stepNum = grp?.stepIndex || (gIdx + 1)
+                          const stepName = String(grp?.stepName || `Step ${stepNum}`)
+                          return (
+                            <div key={gIdx} style={{
+                              background: 'rgba(0, 0, 0, 0.25)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: '8px',
+                              padding: '0.6rem 0.75rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              height: '150px',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                            }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                marginBottom: '0.45rem',
+                                paddingBottom: '0.35rem',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                                gap: '0.5rem'
+                              }}>
+                                <span
+                                  className="text-xs font-semibold"
+                                  style={{ color: 'var(--cyan)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.78rem' }}
+                                  title={`Step ${stepNum}: ${stepName}`}
+                                >
+                                  Step {stepNum} ({stepName}):
                                 </span>
-                              ))
-                            ) : (
-                              <span className="text-xs text-muted">No variables captured</span>
-                            )}
-                          </div>
-                        ))}
+                                <span
+                                  className="badge"
+                                  style={{ fontSize: '0.65rem', background: 'rgba(34, 211, 238, 0.12)', color: 'var(--cyan)', borderRadius: '99px', padding: '2px 6px', fontWeight: 600, flexShrink: 0 }}
+                                >
+                                  {keys.length} var{keys.length !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignContent: 'flex-start', paddingRight: '2px' }}>
+                                {keys.length > 0 ? (
+                                  keys.map((k, i) => (
+                                    <span key={i} className="badge badge-accent mono" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                                      {`{{${k}}}`}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted">No variables captured</span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   ) : Array.isArray(baseStatus?.baseSavedKeys) && baseStatus.baseSavedKeys.length > 0 ? (
@@ -817,25 +853,59 @@ function resolveEndpointPreview(endpointStr, stepResponses) {
                       Saved Variables ({baseRunResult.savedKeys.length}) Grouped by Step:
                     </div>
                     {Array.isArray(baseRunResult.baseStepSavedKeys) && baseRunResult.baseStepSavedKeys.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {baseRunResult.baseStepSavedKeys.map((grp, idx) => (
-                          <div key={idx} className="p-2 rounded" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid var(--border)' }}>
-                            <div style={{ fontWeight: 600, color: 'var(--cyan)', fontSize: '0.82rem', marginBottom: '0.3rem' }}>
-                              Step {grp?.stepIndex || (idx + 1)} ({String(grp?.stepName || `Step ${idx + 1}`)}) — {Array.isArray(grp?.keys) ? grp.keys.length : 0} variable{Array.isArray(grp?.keys) && grp.keys.length !== 1 ? 's' : ''}:
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginTop: '0.4rem' }}>
+                        {baseRunResult.baseStepSavedKeys.map((grp, idx) => {
+                          const keys = Array.isArray(grp?.keys) ? grp.keys : []
+                          const stepNum = grp?.stepIndex || (idx + 1)
+                          const stepName = String(grp?.stepName || `Step ${stepNum}`)
+                          return (
+                            <div key={idx} style={{
+                              background: 'rgba(0, 0, 0, 0.25)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: '8px',
+                              padding: '0.6rem 0.75rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              height: '150px',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                            }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                marginBottom: '0.45rem',
+                                paddingBottom: '0.35rem',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                                gap: '0.5rem'
+                              }}>
+                                <span
+                                  className="text-xs font-semibold"
+                                  style={{ color: 'var(--cyan)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.78rem' }}
+                                  title={`Step ${stepNum}: ${stepName}`}
+                                >
+                                  Step {stepNum} ({stepName}):
+                                </span>
+                                <span
+                                  className="badge"
+                                  style={{ fontSize: '0.65rem', background: 'rgba(34, 211, 238, 0.12)', color: 'var(--cyan)', borderRadius: '99px', padding: '2px 6px', fontWeight: 600, flexShrink: 0 }}
+                                >
+                                  {keys.length} var{keys.length !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignContent: 'flex-start', paddingRight: '2px' }}>
+                                {keys.length > 0 ? (
+                                  keys.map((k, i) => (
+                                    <span key={i} className="badge badge-accent mono" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                                      {`{{${k}}}`}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted">No response variables</span>
+                                )}
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                              {Array.isArray(grp?.keys) && grp.keys.length > 0 ? (
-                                grp.keys.map(k => (
-                                  <span key={k} className="badge badge-accent mono" style={{ fontSize: '0.72rem' }}>
-                                    {`{{${k}}}`}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-xs text-muted">No response variables</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
                       <span className="mono" style={{ color: 'var(--cyan)' }}>

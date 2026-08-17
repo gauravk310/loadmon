@@ -1,49 +1,57 @@
 {
   "aggregate": {
     "counters": {
-      "http.requests": 2000,
-      "http.responses": 2000,
-      "vusers.created": 2000,
-      "vusers.completed": 2000,
-      "vusers.failed": 0,
-      "http.codes.200": 2000
+      "http.requests": 1000,
+      "http.responses": 1000,
+      "vusers.created": 1000,
+      "vusers.completed": 500,
+      "vusers.failed": 500,
+      "http.codes.200": 500,
+      "http.codes.400": 484,
+      "errors.HTTP_400": 484,
+      "http.codes.500": 16,
+      "errors.HTTP_500": 16
     },
     "summaries": {
       "http.response_time": {
-        "min": 5563,
-        "max": 9218,
-        "mean": 7459,
-        "median": 7508,
-        "p75": 8259,
-        "p90": 8669,
-        "p95": 8802,
-        "p99": 8968
+        "min": 0,
+        "max": 18272,
+        "mean": 7850,
+        "median": 6084,
+        "p75": 12135,
+        "p90": 14577,
+        "p95": 15496,
+        "p99": 17568
       }
     },
-    "firstMetricAt": 1786856833585,
-    "lastMetricAt": 1786856843864
+    "firstMetricAt": 1786967676015,
+    "lastMetricAt": 1786967706708
   },
   "intermediate": [
     {
-      "period": "1786856833585",
+      "period": "1786967676015",
       "counters": {
-        "http.requests": 2000,
-        "http.responses": 2000,
-        "vusers.created": 2000,
-        "vusers.completed": 2000,
-        "vusers.failed": 0,
-        "http.codes.200": 2000
+        "http.requests": 1000,
+        "http.responses": 1000,
+        "vusers.created": 1000,
+        "vusers.completed": 500,
+        "vusers.failed": 500,
+        "http.codes.200": 500,
+        "http.codes.400": 484,
+        "errors.HTTP_400": 484,
+        "http.codes.500": 16,
+        "errors.HTTP_500": 16
       },
       "summaries": {
         "http.response_time": {
-          "min": 5563,
-          "max": 9218,
-          "mean": 7459,
-          "median": 7508,
-          "p75": 8259,
-          "p90": 8669,
-          "p95": 8802,
-          "p99": 8968
+          "min": 0,
+          "max": 18272,
+          "mean": 7850,
+          "median": 6084,
+          "p75": 12135,
+          "p90": 14577,
+          "p95": 15496,
+          "p99": 17568
         }
       }
     }

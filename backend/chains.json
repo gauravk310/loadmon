@@ -132,7 +132,7 @@
     "steps": [
       {
         "id": "step_1786199428643_0",
-        "name": "Step 1",
+        "name": "Submit Online Exam",
         "method": "POST",
         "endpoint": "/api/score/submit-online-exam",
         "headers": {
@@ -149,13 +149,28 @@
             "enabled": true
           }
         ],
-        "body": "{\n    \"testId\": \"{{testId}}\",\n    \"studentId\": \"{{user.id}}\",\n    \"answers\": {\n        \"1\": \"A\",\n        \"2\": \"B\",\n        \"3\": \"C\"\n    },\n    \"timeTaken\": {\n        \"1\": 20,\n        \"2\": 10,\n        \"3\": 30\n    },\n    \"isAutoSubmit\": false,\n    \"autoSubmitReason\": \"\",\n    \"violationLog\": [\n        {\n            \"type\": \"window_lost_focus\",\n            \"timestamp\": 1786347113194\n        }\n    ]\n}",
+        "body": "{\n    \"testId\": \"{{testId}}\",\n    \"studentId\": \"{{user.id}}\",\n    \"answers\": {\n        \"1\": \"A\",\n        \"2\": \"10\",\n        \"3\": \"A\",\n        \"4\": \"D\",\n        \"5\": \"B\",\n        \"6\": \"D\",\n        \"7\": \"15\",\n        \"8\": \"A\",\n        \"9\": \"C\",\n        \"10\": \"B\",\n        \"11\": \"D\",\n        \"12\": \"A\",\n        \"13\": \"B\",\n        \"14\": \"D\",\n        \"15\": \"A\",\n        \"16\": \"C\",\n        \"17\": \"B\",\n        \"18\": \"A\",\n        \"19\": \"D\",\n        \"20\": \"B\"\n    },\n    \"timeTaken\": {\n        \"1\": 3,\n        \"2\": 3,\n        \"3\": 2,\n        \"4\": 1,\n        \"5\": 1,\n        \"6\": 1,\n        \"7\": 3,\n        \"8\": 1,\n        \"9\": 1,\n        \"10\": 1,\n        \"11\": 1,\n        \"12\": 1,\n        \"13\": 1,\n        \"14\": 1,\n        \"15\": 1,\n        \"16\": 1,\n        \"17\": 2,\n        \"18\": 1,\n        \"19\": 1,\n        \"20\": 1\n },\n    \"isAutoSubmit\": false,\n    \"autoSubmitReason\": \"\",\n    \"violationLog\": []\n}",
         "think": 1,
-        "responseKeys": []
+        "responseKeys": [
+          "message",
+          "scoreId",
+          "answerPaperId",
+          "scoreData",
+          "scoreData.obtained",
+          "obtained",
+          "scoreData.total",
+          "total",
+          "scoreData.correct",
+          "correct",
+          "scoreData.incorrect",
+          "incorrect",
+          "scoreData.unanswered",
+          "unanswered"
+        ]
       }
     ],
     "createdAt": "2026-08-08T14:31:27.376Z",
-    "updatedAt": "2026-08-12T16:56:47.890Z"
+    "updatedAt": "2026-08-17T11:52:35.856Z"
   },
   {
     "id": "chain_1786346359654",
@@ -235,9 +250,9 @@
     "steps": [
       {
         "id": "step_1786632728022_0",
-        "name": "Step 1",
+        "name": "Sign In",
         "method": "POST",
-        "endpoint": "/api/",
+        "endpoint": "/api/auth/signin",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -252,12 +267,414 @@
             "enabled": true
           }
         ],
+        "body": "    {\n    \"email\": \"{{email}}\",\n    \"password\": \"{{password}}\"\n}",
+        "think": 1,
+        "responseKeys": [
+          "success",
+          "message",
+          "user",
+          "user.id",
+          "id",
+          "user.firstName",
+          "firstName",
+          "user.lastName",
+          "lastName",
+          "user.email",
+          "email"
+        ]
+      },
+      {
+        "id": "step_1786895522000_1",
+        "name": "Get All Enrollments",
+        "method": "GET",
+        "endpoint": "/api/enrollment/get-all/student/{{user.id}}",
+        "headers": {},
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786895522000_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "_id",
+          "classId",
+          "studentId",
+          "class",
+          "class.instructorId",
+          "instructorId",
+          "class.name",
+          "name",
+          "class.courseId",
+          "courseId",
+          "class.periodId",
+          "periodId",
+          "class.code",
+          "code",
+          "class.level",
+          "level",
+          "class.isPracticeZone",
+          "isPracticeZone",
+          "pendingTestIds",
+          "currentStudents",
+          "course",
+          "course.name",
+          "course.code",
+          "course.grade",
+          "grade",
+          "period",
+          "period.term",
+          "term",
+          "period.year",
+          "year"
+        ]
+      },
+      {
+        "id": "step_1786895703622_2",
+        "name": "Get All tests by Class",
+        "method": "GET",
+        "endpoint": "/api/test/get-all/{{classId}}",
+        "headers": {},
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786895703622_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "_id",
+          "classId",
+          "testName",
+          "maxScore",
+          "scheduledDate",
+          "dueDate",
+          "duration",
+          "userPrompt",
+          "isManualEntryQuestions",
+          "isOnlineExamination",
+          "onlineExamQuestions",
+          "onlineExamQuestions.questionId",
+          "questionId",
+          "onlineExamQuestions.questionNumber",
+          "questionNumber",
+          "onlineExamQuestions.sectionNumber",
+          "sectionNumber",
+          "onlineExamQuestions.maxScore",
+          "onlineExamQuestions.courseOutcome",
+          "courseOutcome",
+          "onlineExamQuestions.bloomsLevel",
+          "bloomsLevel",
+          "advancedOnlineExamOptions",
+          "advancedOnlineExamOptions.videoProctoring",
+          "videoProctoring",
+          "advancedOnlineExamOptions.navigationBackToQuestion",
+          "navigationBackToQuestion",
+          "advancedOnlineExamOptions.shuffleQuestions",
+          "shuffleQuestions",
+          "advancedOnlineExamOptions.shuffleOptions",
+          "shuffleOptions",
+          "isCalculatorAllowed",
+          "questionNumbers",
+          "isExternal",
+          "isPracticeTest",
+          "createdBy",
+          "status",
+          "questionsAttainment",
+          "manualEntryQuestions",
+          "createdAt",
+          "updatedAt",
+          "__v"
+        ]
+      },
+      {
+        "id": "step_1786895747111_3",
+        "name": "Get Test",
+        "method": "GET",
+        "endpoint": "/api/test/get/{{testId}}",
+        "headers": {},
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786895747111_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "_id",
+          "classId",
+          "testName",
+          "maxScore",
+          "scheduledDate",
+          "dueDate",
+          "duration",
+          "userPrompt",
+          "isManualEntryQuestions",
+          "isOnlineExamination",
+          "onlineExamQuestions",
+          "onlineExamQuestions.questionId",
+          "questionId",
+          "onlineExamQuestions.questionNumber",
+          "questionNumber",
+          "onlineExamQuestions.sectionNumber",
+          "sectionNumber",
+          "onlineExamQuestions.maxScore",
+          "onlineExamQuestions.courseOutcome",
+          "courseOutcome",
+          "onlineExamQuestions.bloomsLevel",
+          "bloomsLevel",
+          "onlineExamQuestions.questionText",
+          "questionText",
+          "onlineExamQuestions.options",
+          "options",
+          "onlineExamQuestions.options.key",
+          "key",
+          "onlineExamQuestions.options.text",
+          "text",
+          "onlineExamQuestions.topic",
+          "topic",
+          "onlineExamQuestions.type",
+          "type",
+          "onlineExamQuestions.difficulty",
+          "difficulty",
+          "onlineExamQuestions.source",
+          "source",
+          "onlineExamQuestions.diagramSuggested",
+          "diagramSuggested",
+          "onlineExamQuestions.diagramType",
+          "diagramType",
+          "onlineExamQuestions.diagramBoundingBox",
+          "diagramBoundingBox",
+          "onlineExamQuestions.diagramPageFileURL",
+          "diagramPageFileURL",
+          "onlineExamQuestions.diagramFileURL",
+          "diagramFileURL",
+          "onlineExamQuestions.diagramMetadata",
+          "diagramMetadata",
+          "onlineExamQuestions.svgCode",
+          "svgCode",
+          "onlineExamQuestions.isInvalid",
+          "isInvalid",
+          "onlineExamQuestions.subTopic",
+          "subTopic",
+          "onlineExamQuestions.subject",
+          "subject",
+          "advancedOnlineExamOptions",
+          "advancedOnlineExamOptions.videoProctoring",
+          "videoProctoring",
+          "advancedOnlineExamOptions.navigationBackToQuestion",
+          "navigationBackToQuestion",
+          "advancedOnlineExamOptions.shuffleQuestions",
+          "shuffleQuestions",
+          "advancedOnlineExamOptions.shuffleOptions",
+          "shuffleOptions",
+          "isCalculatorAllowed",
+          "questionNumbers",
+          "isExternal",
+          "isPracticeTest",
+          "createdBy",
+          "status",
+          "questionsAttainment",
+          "manualEntryQuestions",
+          "createdAt",
+          "updatedAt",
+          "__v"
+        ]
+      },
+      {
+        "id": "step_1786895991680_5",
+        "name": "Verify Exam Instructions",
+        "method": "GET",
+        "endpoint": "/api/test/verify-exam-instruction-allowed?testScheduledDate={{scheduledDate}}&minutesBeforeEntry=45",
+        "headers": {},
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786895991680_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "allowed"
+        ]
+      },
+      {
+        "id": "step_1786895848202_4",
+        "name": "Verify Start Time",
+        "method": "GET",
+        "endpoint": "/api/test/verify-start-time?testScheduledDate={{scheduledDate}}",
+        "headers": {},
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786895848202_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "canStart"
+        ]
+      },
+      {
+        "id": "step_1786896105155_6",
+        "name": "Upload Snapshot",
+        "method": "POST",
+        "endpoint": "/api/score/upload-proctor-snapshots",
+        "headers": {},
+        "bodyType": "formData",
+        "formDataParams": [
+          {
+            "id": "fd_1786896105155_1",
+            "key": "testId",
+            "type": "text",
+            "value": "{{testId}}",
+            "files": [],
+            "enabled": true
+          },
+          {
+            "id": "fd_1786896237664_110e",
+            "key": "studentId",
+            "type": "text",
+            "value": "{{user.id}}",
+            "files": [],
+            "enabled": true
+          },
+          {
+            "id": "fd_1786896238103_mxel",
+            "key": "capturedTimestamps",
+            "type": "text",
+            "value": "1786265861326",
+            "files": [],
+            "enabled": true
+          },
+          {
+            "id": "fd_1786896238568_duw1",
+            "key": "snapshots",
+            "type": "file",
+            "value": "",
+            "files": [
+              {
+                "id": "pfp_1786950263908_563871.jpeg",
+                "filename": "pfp_1786950263908_563871.jpeg",
+                "originalName": "pfp.jpeg",
+                "mimeType": "image/jpeg",
+                "size": 21144,
+                "relativePath": "uploads/api_files/pfp_1786950263908_563871.jpeg"
+              }
+            ],
+            "enabled": true
+          }
+        ],
+        "body": "",
+        "think": 1,
+        "responseKeys": [
+          "message",
+          "uploaded",
+          "total"
+        ]
+      },
+      {
+        "id": "step_1786896446103_7",
+        "name": "Step 8",
+        "method": "POST",
+        "endpoint": "/api/score/submit-online-exam",
+        "headers": {},
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786896446103_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
+        "body": "{\n    \"testId\": \"{{testId}}\",\n    \"studentId\": \"{{user.id}}\",\n    \"answers\": {\n        \"1\": \"A\",\n        \"2\": \"10\",\n        \"3\": \"A\",\n        \"4\": \"D\",\n        \"5\": \"B\",\n        \"6\": \"D\",\n        \"7\": \"15\",\n        \"8\": \"A\",\n        \"9\": \"C\",\n        \"10\": \"B\",\n        \"11\": \"D\",\n        \"12\": \"A\",\n        \"13\": \"B\",\n        \"14\": \"D\",\n        \"15\": \"A\",\n        \"16\": \"C\",\n        \"17\": \"B\",\n        \"18\": \"A\",\n        \"19\": \"D\",\n        \"20\": \"B\",\n        \"21\": \"C\",\n        \"22\": \"C\",\n        \"23\": \"A\",\n        \"24\": \"D\",\n        \"25\": \"C\",\n        \"26\": \"C\",\n        \"27\": \"B\",\n        \"28\": \"C\",\n        \"29\": \"D\",\n        \"30\": \"D\",\n        \"31\": \"B\",\n        \"32\": \"12\",\n        \"33\": \"10\",\n        \"34\": \"A\",\n        \"35\": \"15\",\n        \"36\": \"B\",\n        \"37\": \"A\",\n        \"38\": \"C\",\n        \"39\": \"57\",\n        \"40\": \"C\",\n        \"41\": \"B\",\n        \"42\": \"D\",\n        \"43\": \"A\",\n        \"44\": \"C\",\n        \"45\": \"D\",\n        \"46\": \"B\",\n        \"47\": \"C\",\n        \"48\": \"B\",\n        \"49\": \"A\",\n        \"50\": \"D\",\n        \"51\": \"C\",\n        \"52\": \"C\",\n        \"53\": \"C\",\n        \"54\": \"B\",\n        \"55\": \"D\",\n        \"56\": \"C\",\n        \"57\": \"D\",\n        \"58\": \"C\",\n        \"59\": \"D\",\n        \"60\": \"B\"\n    },\n    \"timeTaken\": {\n        \"1\": 3,\n        \"2\": 3,\n        \"3\": 2,\n        \"4\": 1,\n        \"5\": 1,\n        \"6\": 1,\n        \"7\": 3,\n        \"8\": 1,\n        \"9\": 1,\n        \"10\": 1,\n        \"11\": 1,\n        \"12\": 1,\n        \"13\": 1,\n        \"14\": 1,\n        \"15\": 1,\n        \"16\": 1,\n        \"17\": 2,\n        \"18\": 1,\n        \"19\": 1,\n        \"20\": 1,\n        \"21\": 1,\n        \"22\": 2,\n        \"23\": 1,\n        \"24\": 2,\n        \"25\": 1,\n        \"26\": 2,\n        \"27\": 2,\n        \"28\": 1,\n        \"29\": 1,\n        \"30\": 1,\n        \"31\": 2,\n        \"32\": 2,\n        \"33\": 4,\n        \"34\": 4,\n        \"35\": 3,\n        \"36\": 3,\n        \"37\": 1,\n        \"38\": 2,\n        \"39\": 3,\n        \"40\": 1,\n        \"41\": 1,\n        \"42\": 1,\n        \"43\": 3,\n        \"44\": 1,\n        \"45\": 4,\n        \"46\": 7,\n        \"47\": 1,\n        \"48\": 1,\n        \"49\": 6,\n        \"50\": 1,\n        \"51\": 1,\n        \"52\": 2,\n        \"53\": 1,\n        \"54\": 1,\n        \"55\": 1,\n        \"56\": 1,\n        \"57\": 1,\n        \"58\": 1,\n        \"59\": 1,\n        \"60\": 1\n    },\n    \"isAutoSubmit\": false,\n    \"autoSubmitReason\": \"\",\n    \"violationLog\": []\n}",
+        "think": 1,
+        "responseKeys": [
+          "message",
+          "scoreId",
+          "answerPaperId",
+          "scoreData",
+          "scoreData.obtained",
+          "obtained",
+          "scoreData.total",
+          "total",
+          "scoreData.correct",
+          "correct",
+          "scoreData.incorrect",
+          "incorrect",
+          "scoreData.unanswered",
+          "unanswered"
+        ]
+      }
+    ],
+    "createdAt": "2026-08-13T14:52:18.535Z",
+    "updatedAt": "2026-08-17T07:38:14.744Z"
+  },
+  {
+    "id": "chain_1786896912615",
+    "name": "Delete Online Submissions",
+    "appId": "app_default",
+    "serverUrl": "https://grademeai-qabe.onrender.com",
+    "appUrl": "https://grademeai-qafe.onrender.com",
+    "steps": [
+      {
+        "id": "step_1786896900631_0",
+        "name": "Step 1",
+        "method": "POST",
+        "endpoint": "/api/",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "bodyType": "json",
+        "formDataParams": [
+          {
+            "id": "fd_1786896900631_1",
+            "key": "",
+            "type": "text",
+            "value": "",
+            "files": [],
+            "enabled": true
+          }
+        ],
         "body": "",
         "think": 1,
         "responseKeys": []
       }
     ],
-    "createdAt": "2026-08-13T14:52:18.535Z",
-    "updatedAt": "2026-08-13T14:52:18.535Z"
+    "createdAt": "2026-08-16T16:15:12.615Z",
+    "updatedAt": "2026-08-16T16:15:12.615Z"
   }
 ]
